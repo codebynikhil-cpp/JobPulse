@@ -137,8 +137,16 @@ def test_all_components_and_determinism():
 @pytest.mark.parametrize(
     "changes,preferences,filter_name",
     [
-        ({"title": "Senior Software Engineer"}, {"excluded_terms": ("Senior",)}, "excluded_terms"),
-        ({"location": "London"}, {"excluded_locations": ("London",)}, "excluded_locations"),
+        (
+            {"title": "Senior Software Engineer"},
+            {"excluded_terms": ("Senior",)},
+            "excluded_terms",
+        ),
+        (
+            {"location": "London"},
+            {"excluded_locations": ("London",)},
+            "excluded_locations",
+        ),
         ({"employment_type": "contract"}, {}, "employment"),
         ({"experience_text": "5+ years experience"}, {}, "experience"),
         ({"description": "Java SQL"}, {}, "required_skills"),
@@ -216,7 +224,8 @@ def test_exact_skill_boundaries(skill, text, hit):
 
 def test_preferred_partial_overlap_and_employment_alternatives():
     result = DeterministicMatcher().match(
-        job(), profile(preferred_skills=("SQL", "Rust"), employment_types=("full_time", "contract"))
+        job(),
+        profile(preferred_skills=("SQL", "Rust"), employment_types=("full_time", "contract")),
     )
     assert result.components[2].score == 5
     assert result.components[-1].score == 5
@@ -233,7 +242,11 @@ def test_work_mode_is_unknown_and_schema_unchanged():
 
 def test_uncertain_senior_title_never_numeric_rejects():
     result = DeterministicMatcher().match(
-        job(title="Senior Software Engineer", experience_text="", description="Python SQL"),
+        job(
+            title="Senior Software Engineer",
+            experience_text="",
+            description="Python SQL",
+        ),
         profile(),
     )
     assert not any(h.status == "failed" for h in result.hard_filters)
@@ -261,7 +274,11 @@ def test_negated_skill_does_not_satisfy_required(description):
 
 def test_title_unknown_has_no_experience_points():
     result = DeterministicMatcher().match(
-        job(title="Junior Software Engineer", description="Python SQL", experience_text=None),
+        job(
+            title="Junior Software Engineer",
+            description="Python SQL",
+            experience_text=None,
+        ),
         profile(),
     )
     assert result.components[4].score == 0
@@ -281,7 +298,11 @@ def test_below_profile_minimum_is_soft_only():
 
 def test_structured_job_overrides_text_in_matcher():
     result = DeterministicMatcher().match(
-        job(experience_text="10+ years", min_exp_years=Decimal(1), max_exp_years=Decimal(2)),
+        job(
+            experience_text="10+ years",
+            min_exp_years=Decimal(1),
+            max_exp_years=Decimal(2),
+        ),
         profile(),
     )
     assert result.score == 100
@@ -301,7 +322,15 @@ def test_matching_imports_are_pure():
 
     directory = Path(app.matching.__file__).parent
     assert len(list(directory.glob("*.py"))) >= 6
-    allowed = {"dataclasses", "decimal", "typing", "re", "unicodedata", "json", "app.matching"}
+    allowed = {
+        "dataclasses",
+        "decimal",
+        "typing",
+        "re",
+        "unicodedata",
+        "json",
+        "app.matching",
+    }
     for path in directory.glob("*.py"):
         tree = ast.parse(path.read_text(encoding="utf-8-sig"))
         for node in ast.walk(tree):

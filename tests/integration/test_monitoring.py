@@ -76,7 +76,11 @@ def profile(factory, company_id=None, *, active=True, name="Engineer", owner=Non
 
 def raw(identity="1", **changes):
     item = RawJob(
-        identity, "Software Engineer", "Python", "Bengaluru", "https://example.com/jobs/" + identity
+        identity,
+        "Software Engineer",
+        "Python",
+        "Bengaluru",
+        "https://example.com/jobs/" + identity,
     )
     return replace(item, **changes)
 
@@ -92,7 +96,12 @@ def test_new_repeat_update_acceptance(factory):
     pid, owner = profile(factory, company)
     records = [raw(str(i)) for i in range(5)]
     first = run(factory, sid, records)
-    assert (first.status, first.created_count, first.evaluated_count, first.matched_count) == (
+    assert (
+        first.status,
+        first.created_count,
+        first.evaluated_count,
+        first.matched_count,
+    ) == (
         "success",
         5,
         5,
@@ -115,7 +124,11 @@ def test_new_repeat_update_acceptance(factory):
         } == originals
     records[0] = replace(records[0], description="Java")
     changed = run(factory, sid, records)
-    assert (changed.updated_count, changed.evaluated_count, changed.matched_count) == (1, 1, 0)
+    assert (changed.updated_count, changed.evaluated_count, changed.matched_count) == (
+        1,
+        1,
+        0,
+    )
     with factory() as db:
         matches = list(db.scalars(select(JobMatch)))
         assert len(matches) == 5
@@ -273,7 +286,10 @@ def test_timeout_isolated_and_health_recorded(factory):
 
     result = asyncio.run(
         run_source(
-            factory, sid, adapter=Hanging(), config=MonitoringConfig(source_timeout_seconds=0.01)
+            factory,
+            sid,
+            adapter=Hanging(),
+            config=MonitoringConfig(source_timeout_seconds=0.01),
         )
     )
     assert result.status == "failed" and result.failed_count == 1
@@ -468,7 +484,10 @@ def test_cancelled_run_releases_lock_and_next_run_recovers(factory):
 
     asyncio.run(scenario())
     with factory() as db:
-        assert {r.status for r in db.scalars(select(MonitorRun))} == {"abandoned", "success"}
+        assert {r.status for r in db.scalars(select(MonitorRun))} == {
+            "abandoned",
+            "success",
+        }
 
 
 def test_current_matches_hide_stale_profile_state(factory):
@@ -504,7 +523,10 @@ def test_monitoring_migration_round_trip_preserves_baseline(factory, migrated_da
     sid, company = source(factory)
     profile(factory, company)
     run(factory, sid, [raw()])
-    env = dict(os.environ, DATABASE_URL=migrated_database.url.render_as_string(hide_password=False))
+    env = dict(
+        os.environ,
+        DATABASE_URL=migrated_database.url.render_as_string(hide_password=False),
+    )
     subprocess.run(["alembic", "downgrade", "0004"], env=env, check=True)
     try:
         assert "job_matches" not in inspect(migrated_database).get_table_names()

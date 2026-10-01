@@ -175,4 +175,64 @@ BrowserbasePlaywrightProvider share page lifecycle/security controls. Both retur
 RawJob through the same ingestion/normalizer/upsert/Matcher pipeline; no matching
 logic is introduced into acquisition. Real local JavaScript/HTTP fixtures verify
 this pipeline for two companies and two users. No production browser company adapter
-or notification component is introduced. See [company-career-sources.md](company-career-sources.md).
+is introduced. See [company-career-sources.md](company-career-sources.md).
+
+## Phase 7 Notification Architecture
+
+Phase 7 implements transactional notification generation and decoupled email delivery:
+
+```
+Match evaluation
+    ↓
+Database transaction
+    ├── update match state (job_matches)
+    └── create notification outbox record (notifications)
+                 ↓
+            commit
+                 ↓
+          notification worker (database-backed, FOR UPDATE SKIP LOCKED)
+                 ↓
+            email provider (NotificationProvider -> EmailNotificationProvider)
+                 ↓
+        delivery/update status (sent, failed/retried, permanently_failed)
+```
+
+### 1. Transactional Outbox & Boundary
+- Match state updates and outbox insertion occur in the same per-job database transaction.
+- If evaluation succeeds, the match state and outbox record commit atomically.
+- If evaluation fails or rolls back, neither match state nor notification record is partially persisted.
+- No network/email delivery occurs within the matcher, adapter, or monitoring transaction.
+
+### 2. User/Job Deduplication
+- Multiple active profiles belonging to the same user that match the same job are aggregated into exactly ONE notification.
+- Logical identity constraint: `UNIQUE(user_id, job_id, kind, revision)` on `notifications`.
+- The notification payload aggregates all matching profiles with their individual match scores and explanation evidence.
+- Different users matching the same job each receive their own independent notification.
+
+### 3. Changed-Job Alert Policy
+- Material change is defined by canonical fields: `title`, `description`, `location`, `employment_type`, `experience_text`, `min_exp_years`, `max_exp_years`, `application_url`.
+- A SHA-256 fingerprint of canonical fields represents the job's material version.
+- Policy behavior:
+  - **Unchanged:** No notification (material hash matches prior notification).
+  - **Changed but irrelevant:** 0 matching profiles; no notification.
+  - **Changed and newly becomes relevant:** User was not previously matched; notifies candidate.
+  - **Changed and remains relevant:** Evaluated against configured policy (`material`: notifies once per material revision; `newly_relevant`: suppresses notification for already-relevant users; `off`: disables changed-job alerts).
+  - **Changed and no longer relevant:** Matches no profiles; no notification.
+
+### 4. Worker Claiming and PostgreSQL Locking
+- Worker queries due records (`(status IN ('pending', 'failed') AND available_at <= now) OR (status = 'processing' AND lease_until <= now)`) using `SELECT FOR UPDATE SKIP LOCKED`.
+- Claiming atomically assigns a unique `claim_token`, sets `lease_until = now + lease_seconds`, sets `status = 'processing'`, and increments `attempts`.
+- Two concurrent workers can never claim or deliver the same outbox record.
+- Orphaned tasks (e.g. from crashed workers) are recovered after `lease_until` expires, subject to a bounded recovery window (`recovery_window_seconds`).
+
+### 5. Email Provider Abstraction & Idempotency
+- `NotificationProvider` -> `EmailNotificationProvider` abstraction decouples business logic from vendors.
+- `ResendEmailProvider` integrates via HTTPS POST with bearer auth and passes `Idempotency-Key: jobpulse-<notification_id>`.
+- `MockEmailProvider` and `DisabledEmailProvider` support deterministic test and headless operation.
+- **Delivery Semantics:** Email delivery over distributed networks provides at-least-once delivery with provider-side deduplication. Because email providers generally do not guarantee absolute exactly-once delivery across network partitions and post-send crashes, stable idempotency keys minimize duplicate delivery risk while acknowledging standard SMTP/HTTP edge cases.
+
+### 6. Retry Policy
+- Differentiates transient errors (`RetryableDeliveryError`: timeouts, connection errors, HTTP 429, HTTP 5xx) from permanent failures (`PermanentDeliveryError`: invalid recipients, 401/403 auth errors, 400/422 malformed requests).
+- Bounded exponential backoff: `delay = min(cap_seconds, base_seconds * 2^(attempts - 1))`.
+- When `attempts >= max_attempts`, transitions to `permanently_failed` with the last recorded error.
+

@@ -29,7 +29,9 @@ def graph(db, source_type="greenhouse", slug="acme"):
     source = catalog.create_source(
         db,
         SourceCreate(
-            company_id=company.id, source_type=source_type, config={"board": "public-board"}
+            company_id=company.id,
+            source_type=source_type,
+            config={"board": "public-board"},
         ),
     )
     return company, source
@@ -218,7 +220,10 @@ def test_missing_references(db):
         {"status": "new"},
         {"status": "closed"},
         {"first_seen_at": "2026-01-01T00:00:00"},
-        {"first_seen_at": "2026-01-02T00:00:00Z", "last_seen_at": "2026-01-01T00:00:00Z"},
+        {
+            "first_seen_at": "2026-01-02T00:00:00Z",
+            "last_seen_at": "2026-01-01T00:00:00Z",
+        },
         {"closed_at": "2026-01-01T00:00:00Z"},
         {"raw_data": {"nested": ["bad" + chr(0)]}},
         {"description": "bad" + chr(0)},
@@ -238,7 +243,8 @@ def test_job_schema_validation(bad):
 
 
 @pytest.mark.parametrize(
-    "bad", [{"name": " "}, {"slug": "UPPER"}, {"slug": "../bad"}, {"name": "bad" + chr(0)}]
+    "bad",
+    [{"name": " "}, {"slug": "UPPER"}, {"slug": "../bad"}, {"name": "bad" + chr(0)}],
 )
 def test_company_schema_validation(bad):
     with pytest.raises(ValidationError):
@@ -246,7 +252,12 @@ def test_company_schema_validation(bad):
 
 
 @pytest.mark.parametrize(
-    "bad", [{"poll_interval_sec": 0}, {"config": []}, {"config": {"nested": {"x": "bad" + chr(0)}}}]
+    "bad",
+    [
+        {"poll_interval_sec": 0},
+        {"config": []},
+        {"config": {"nested": {"x": "bad" + chr(0)}}},
+    ],
 )
 def test_source_schema_validation(bad):
     with pytest.raises(ValidationError):
@@ -293,11 +304,10 @@ def test_closed_job_storage_does_not_run_monitoring(db):
 
 
 def test_transaction_failure_rolls_back_complete_graph(db):
-    with pytest.raises(IntegrityError):
-        with db.begin():
-            company, source = graph(db)
-            jobs.create_job(db, job_data(company, source))
-            jobs.create_job(db, job_data(company, source))
+    with pytest.raises(IntegrityError), db.begin():
+        company, source = graph(db)
+        jobs.create_job(db, job_data(company, source))
+        jobs.create_job(db, job_data(company, source))
     for model in (Company, JobSource, Job):
         assert db.scalar(select(func.count()).select_from(model)) == 0
 
@@ -322,6 +332,7 @@ def test_schema_inventory_and_indexes(migrated_database):
         "source_monitor_state",
         "job_monitor_state",
         "job_matches",
+        "notifications",
     }
     indexes = {tuple(item["column_names"]) for item in inspector.get_indexes("jobs")}
     assert {
@@ -341,12 +352,18 @@ def test_migration_round_trip_preserves_profiles_and_auth(client, migrated_datab
     assert (
         client.post(
             "/api/auth/signup",
-            json={"email": "migration@example.com", "password": "a strong password 123"},
+            json={
+                "email": "migration@example.com",
+                "password": "a strong password 123",
+            },
         ).status_code
         == 201
     )
     profile = client.post("/api/profiles", json={"name": "Keep this profile"}).json()
-    env = dict(os.environ, DATABASE_URL=migrated_database.url.render_as_string(hide_password=False))
+    env = dict(
+        os.environ,
+        DATABASE_URL=migrated_database.url.render_as_string(hide_password=False),
+    )
     subprocess.run(["alembic", "downgrade", "0003"], env=env, check=True)
     try:
         assert "companies" not in inspect(migrated_database).get_table_names()

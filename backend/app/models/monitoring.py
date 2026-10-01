@@ -64,6 +64,7 @@ class JobMonitorState(Timestamps, Base):
     )
     missing_count: Mapped[int] = mapped_column(Integer, default=0)
     pending: Mapped[bool] = mapped_column(Boolean, default=False)
+    event_kind: Mapped[str] = mapped_column(String(16), default="changed", server_default="changed")
 
 
 class JobMatch(Timestamps, Base):

@@ -70,7 +70,9 @@ def setup_source(engine, source_type="greenhouse"):
         source = catalog.create_source(
             db,
             SourceCreate(
-                company_id=company.id, source_type=source_type, config={"board_token": "acme"}
+                company_id=company.id,
+                source_type=source_type,
+                config={"board_token": "acme"},
             ),
         )
         source_id = source.id
@@ -319,14 +321,26 @@ def test_mandatory_fake_source_three_run_acceptance(migrated_database):
     records = raws()
     fake = FakeSource([records[:2], records[2:]])
     first = run(factory, source_id, fake)
-    assert (first.fetched_count, first.normalized_count, first.created_count) == (5, 5, 5)
+    assert (first.fetched_count, first.normalized_count, first.created_count) == (
+        5,
+        5,
+        5,
+    )
     with factory() as db:
         originals = {j.external_job_id: (j.id, j.first_seen_at) for j in db.scalars(select(Job))}
     second = run(factory, source_id, fake)
-    assert (second.created_count, second.updated_count, second.unchanged_count) == (0, 0, 5)
+    assert (second.created_count, second.updated_count, second.unchanged_count) == (
+        0,
+        0,
+        5,
+    )
     fake.batches[0][0] = replace(records[0], title="Updated Software Engineer")
     third = run(factory, source_id, fake)
-    assert (third.created_count, third.updated_count, third.unchanged_count) == (0, 1, 4)
+    assert (third.created_count, third.updated_count, third.unchanged_count) == (
+        0,
+        1,
+        4,
+    )
     assert third.failed_count == 0 and third.duration_seconds >= 0
     with factory() as db:
         stored = list(db.scalars(select(Job)))

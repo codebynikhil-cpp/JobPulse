@@ -101,7 +101,9 @@ def test_rate_limits_failed_login_by_email_and_ignores_forwarded_header(client):
     for i in range(settings.auth_failure_limit):
         assert (
             client.post(
-                "/api/auth/login", json=GOOD, headers={"X-Forwarded-For": f"192.0.2.{i}"}
+                "/api/auth/login",
+                json=GOOD,
+                headers={"X-Forwarded-For": f"192.0.2.{i}"},
             ).status_code
             == 401
         )

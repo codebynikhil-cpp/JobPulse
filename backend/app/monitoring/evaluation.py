@@ -14,6 +14,8 @@ from app.models.job import Job
 from app.models.monitoring import JobMatch, JobMonitorState, ProfileCompany
 from app.models.profile import Profile
 from app.monitoring.config import MonitoringConfig
+from app.notifications.config import NotificationConfig
+from app.notifications.outbox import enqueue_matches, previous_relevant_users
 
 logger = logging.getLogger(__name__)
 MATCHER_VERSION = "phase5-exact-v1"
@@ -58,7 +60,9 @@ def evaluate_pending(
     matcher: Matcher,
     identity: str,
     config: MonitoringConfig,
+    notification_config: NotificationConfig | None = None,
 ) -> tuple[int, int, int]:
+    notification_config = notification_config or NotificationConfig.from_settings()
     evaluated = matched = failed = 0
     after_job = None
     while True:
@@ -86,6 +90,7 @@ def evaluate_pending(
                     continue
                 after_profile = None
                 job_failed = False
+                previous_users = previous_relevant_users(db, job.id)
                 while True:
                     query = (
                         select(Profile)
@@ -194,6 +199,9 @@ def evaluate_pending(
                             )
                     after_profile = profiles[-1].id
                 work.pending = job_failed
+                # Outside profile savepoints: failure rolls back this job's match
+                # writes and all corresponding notification intent together.
+                enqueue_matches(db, job, work, previous_users, notification_config)
         after_job = ids[-1]
     return evaluated, matched, failed
 

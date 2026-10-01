@@ -1,4 +1,4 @@
-from sqlalchemy import func, literal, select, update
+from sqlalchemy import case, func, literal, select, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 
@@ -55,7 +55,23 @@ def record_observation(
                 select(Job.id).where(Job.source_id == source.id, Job.external_job_id.in_(changed))
             )
         )
-        .values(pending=True)
+        .values(
+            pending=True,
+            event_kind=case(
+                (
+                    JobMonitorState.job_id.in_(
+                        select(Job.id).where(
+                            Job.source_id == source.id,
+                            Job.external_job_id.in_(
+                                [key for key, kind in classifications.items() if kind == "created"]
+                            ),
+                        )
+                    ),
+                    "new",
+                ),
+                else_="changed",
+            ),
+        )
     )
     closed = 0
     if anomaly:

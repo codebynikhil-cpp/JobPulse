@@ -51,7 +51,11 @@ def test_browserbase_protocol_create_connect_release_without_live_account(monkey
         if request.url.path.endswith(sid):
             return httpx.Response(200, json={"status": "COMPLETED"})
         return httpx.Response(
-            201, json={"id": sid, "connectUrl": "wss://connect.browserbase.com?apiKey=test-secret"}
+            201,
+            json={
+                "id": sid,
+                "connectUrl": "wss://connect.browserbase.com?apiKey=test-secret",
+            },
         )
 
     provider = BrowserbasePlaywrightProvider(

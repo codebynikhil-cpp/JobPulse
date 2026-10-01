@@ -18,7 +18,7 @@ from app.schemas.catalog import CompanyCreate, SourceCreate, SourceOut
 from app.services import catalog
 from app.sources.base import SourceError
 from app.sources.registry import DEFAULT_REGISTRY
-from tests.integration.career_fixtures import (  # noqa: F401
+from tests.integration.career_fixtures import (
     FixtureCompanyBrowser,
     fixture_registry,
 )
@@ -130,7 +130,10 @@ def test_mandatory_two_company_two_strategy_scheduler_pipeline(migrated_database
         db.get(JobSource, sa_id).config = {"mode": "partial"}
     make_due()
     isolated = asyncio.run(run_due(factory, registry=registry))
-    assert {r.source_id: r.status for r in isolated} == {sa_id: "failed", sb_id: "success"}
+    assert {r.source_id: r.status for r in isolated} == {
+        sa_id: "failed",
+        sb_id: "success",
+    }
     with factory() as db:
         assert {j.id for j in db.scalars(select(Job))} == identities
         assert all(j.status == "open" for j in db.scalars(select(Job)))
@@ -240,11 +243,16 @@ def test_career_metadata_migration_roundtrip_preserves_sources(migrated_database
         source = catalog.create_source(
             db,
             SourceCreate(
-                company_id=company.id, source_type="greenhouse", config={"board_token": "legacy"}
+                company_id=company.id,
+                source_type="greenhouse",
+                config={"board_token": "legacy"},
             ),
         )
         sid = source.id
-    env = dict(os.environ, DATABASE_URL=migrated_database.url.render_as_string(hide_password=False))
+    env = dict(
+        os.environ,
+        DATABASE_URL=migrated_database.url.render_as_string(hide_password=False),
+    )
     subprocess.run(["alembic", "downgrade", "0005"], env=env, check=True)
     try:
         assert "acquisition_method" not in {
@@ -273,10 +281,8 @@ def test_acquisition_database_constraints(migrated_database, sql):
     with factory.begin() as db:
         c = catalog.create_company(db, CompanyCreate(name="Acme", slug="constraint-company"))
         catalog.create_source(db, SourceCreate(company_id=c.id, source_type="greenhouse"))
-    with factory.begin() as db:
-        with pytest.raises(IntegrityError):
-            with db.begin_nested():
-                db.execute(text(sql))
+    with factory.begin() as db, pytest.raises(IntegrityError), db.begin_nested():
+        db.execute(text(sql))
 
 
 def test_scheduler_only_fetches_user_selected_company_sources(migrated_database):

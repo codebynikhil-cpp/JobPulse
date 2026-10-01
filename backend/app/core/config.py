@@ -23,6 +23,17 @@ class Settings(BaseSettings):
     browser_max_sessions: int = Field(default=1, ge=1, le=4)
     browserbase_api_key: SecretStr = SecretStr("")
     browserbase_project_id: str = ""
+    notifications_enabled: bool = True
+    notification_changed_policy: Literal["material", "newly_relevant", "off"] = "material"
+    notification_max_attempts: int = Field(default=5, ge=1, le=10)
+    notification_retry_base_seconds: int = Field(default=60, ge=1, le=3600)
+    notification_retry_cap_seconds: int = Field(default=3600, ge=1, le=7200)
+    notification_lease_seconds: int = Field(default=120, ge=30, le=3600)
+    notification_tick_seconds: float = Field(default=10, gt=0, le=3600)
+    notification_batch_size: int = Field(default=50, ge=1, le=500)
+    email_provider: Literal["disabled", "resend"] = "disabled"
+    resend_api_key: SecretStr = SecretStr("")
+    email_from: str = ""
 
     @property
     def cookie_name(self) -> str:

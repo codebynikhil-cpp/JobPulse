@@ -10,7 +10,13 @@ from sqlalchemy.orm import Session
 
 from app.core.config import settings
 from app.main import app
-from app.models.profile import Profile, ProfileExclusion, ProfileLocation, ProfileRole, ProfileSkill
+from app.models.profile import (
+    Profile,
+    ProfileExclusion,
+    ProfileLocation,
+    ProfileRole,
+    ProfileSkill,
+)
 
 TABLES = (ProfileRole, ProfileSkill, ProfileLocation, ProfileExclusion)
 FULL = {
@@ -22,7 +28,10 @@ FULL = {
     "employment_types": ["full_time", "internship"],
     "work_modes": ["remote", "hybrid"],
     "roles": [{"name": "Software Engineer"}, {"name": "Backend Developer"}],
-    "skills": [{"name": "Python", "kind": "required"}, {"name": "PostgreSQL", "kind": "preferred"}],
+    "skills": [
+        {"name": "Python", "kind": "required"},
+        {"name": "PostgreSQL", "kind": "preferred"},
+    ],
     "locations": [{"name": "Bengaluru"}, {"name": "London", "excluded": True}],
     "exclusions": [
         {"term": "Senior", "kind": "keyword"},
@@ -267,7 +276,11 @@ def test_activation_deactivation(owner):
         ("get", "/api/profiles", None),
         ("post", "/api/profiles", {"name": "Test"}),
         ("get", "/api/profiles/00000000-0000-0000-0000-000000000001", None),
-        ("patch", "/api/profiles/00000000-0000-0000-0000-000000000001", {"active": False}),
+        (
+            "patch",
+            "/api/profiles/00000000-0000-0000-0000-000000000001",
+            {"active": False},
+        ),
         ("delete", "/api/profiles/00000000-0000-0000-0000-000000000001", None),
     ],
 )
@@ -368,7 +381,10 @@ def test_concurrent_duplicate_name(owner):
     def attempt(_):
         with TestClient(
             app,
-            headers={"Origin": settings.app_origin, "Cookie": f"{settings.cookie_name}={cookie}"},
+            headers={
+                "Origin": settings.app_origin,
+                "Cookie": f"{settings.cookie_name}={cookie}",
+            },
         ) as c:
             return c.post("/api/profiles", json=FULL).status_code
 
@@ -382,7 +398,10 @@ def test_migration_round_trip_preserves_auth(owner, migrated_database):
     import os
     import subprocess
 
-    env = dict(os.environ, DATABASE_URL=migrated_database.url.render_as_string(hide_password=False))
+    env = dict(
+        os.environ,
+        DATABASE_URL=migrated_database.url.render_as_string(hide_password=False),
+    )
     create(owner)
     subprocess.run(["alembic", "downgrade", "0002"], env=env, check=True)
     try:
@@ -402,14 +421,18 @@ def test_concurrent_partial_updates_preserve_other_fields(owner):
     def change(payload):
         with TestClient(
             app,
-            headers={"Origin": settings.app_origin, "Cookie": f"{settings.cookie_name}={cookie}"},
+            headers={
+                "Origin": settings.app_origin,
+                "Cookie": f"{settings.cookie_name}={cookie}",
+            },
         ) as c:
             return c.patch(url, json=payload).status_code
 
     with ThreadPoolExecutor(max_workers=2) as pool:
         statuses = list(
             pool.map(
-                change, [{"description": "Concurrent description"}, {"work_modes": ["onsite"]}]
+                change,
+                [{"description": "Concurrent description"}, {"work_modes": ["onsite"]}],
             )
         )
     assert statuses == [200, 200]
