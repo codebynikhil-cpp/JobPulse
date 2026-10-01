@@ -1,2 +1,10 @@
 "use client";
-export default function ErrorPage({ reset }: { reset: () => void }) { return <div role="alert"><p>Unable to load this page.</p><button onClick={reset} className="mt-4 underline">Try again</button></div>; }
+import { ErrorState } from "@/components/ui/feedback";
+export default function ErrorPage({ reset }: { reset: () => void }) {
+  return (
+    <ErrorState
+      message="Unable to load this page. Please try again."
+      retry={reset}
+    />
+  );
+}

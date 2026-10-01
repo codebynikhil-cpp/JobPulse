@@ -297,3 +297,36 @@ deterministic tie-breaker. Its timestamps/method refer to that representative
 source; the health API remains individually scoped by source ID. Migration 0010
 repairs inherited development column drift to Phase 7's Text contract without
 truncating stored errors.
+
+
+## Approved frontend redesign
+
+Authenticated routes now live under the `(app)` route group without changing
+public URLs. Its server layout validates the session and supplies the shared
+sidebar/header with account identity and unread notification count. Pages fetch
+owner-scoped backend data on the server; interactivity is confined to action,
+dialog, navigation and form components. Backend authorization remains authoritative.
+
+`components/ui` owns design primitives, status/score badges, pagination,
+loading/empty/error states, Radix confirmation dialogs and accessible toast feedback.
+`components/layout` owns the responsive shell. Domain folders contain reusable job
+rows/actions/filter controls, dashboard sections, company subscription controls,
+profile sections and notification rows. Dashboard and Jobs share the same job UI.
+
+`lib/product-api.ts` handles typed server reads and complete profile option loading;
+`lib/client-api.ts` centralizes browser mutations, session expiry and backend errors.
+Existing same-origin proxies retain cookie forwarding, Origin enforcement and auth
+Set-Cookie behavior. No backend routes, matching logic, schema or migration changes.
+
+Job filters and pagination are URL driven. Backend pagination retains newest-first
+ordering; score/company ordering applies explicitly within the current page.
+Notifications use one lookahead row for pagination and existing read/unread filters.
+Company health is shown only when monitored; `failing` is labelled Issue, and raw
+errors/acquisition internals are omitted. Existing subscribed-profile IDs support
+per-profile controls for active profiles. Application links never implicitly mark
+a job applied. External descriptions are rendered as text, never unsafe HTML.
+
+Authenticated data links disable speculative prefetch, avoiding unnecessary
+owner-scoped queries. Query-only pagination, filter reset and notification tabs
+use document navigation, consistent with GET filter forms; this prevents stale
+query views after form submission/reload in the current Next.js runtime.

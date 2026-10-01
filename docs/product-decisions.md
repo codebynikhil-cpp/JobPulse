@@ -297,3 +297,27 @@ deterministic tie-breaker. Its timestamps/method refer to that representative
 source; the health API remains individually scoped by source ID. Migration 0010
 repairs inherited development column drift to Phase 7's Text contract without
 truncating stored errors.
+
+
+## Frontend redesign decisions
+
+- Keep Next.js 15, React 19 and Tailwind 4. Use locally owned primitives with
+  Radix Dialog/Dropdown and Lucide React; no full template or additional state,
+  form, table or animation framework. This follows the approved reusable approach
+  without adding the shadcn CLI/runtime when direct primitives suffice.
+- Use a restrained light neutral theme, indigo accent, semantic status colors,
+  6px controls, 8px surfaces and minimal shadows. Lists and divided sections replace
+  a wall of cards. Maintain responsive sidebar/sheet navigation and reduced motion.
+- Preserve backend API contracts. Alternate score/company sorting is labelled
+  current-page ordering; true global ordering needs a separate API extension.
+- Profile notification settings remain deferred: the spec describes preferences
+  that the current public profile API does not expose. Do not create pretend controls.
+- Subscription coverage counts refer to active profiles. Inactive associations
+  are not fully exposed by the existing subscription endpoint.
+- `recent_matches_count` is labelled matching open jobs because the implementation
+  has no recent-time window. Saved/applied totals are state counts, not an invented
+  activity timeline. Account exposes existing identity/session actions only.
+- Dates render consistently in UTC to avoid server/client hydration differences.
+  Monitoring checks are not fabricated for never-checked sources.
+- Browser fixtures use isolated test users, FakeSource and persisted jobs; records
+  are removed at the end. No fixture data is introduced into production UI code.

@@ -1,17 +1,18 @@
 import "./globals.css";
-import Link from "next/link";
-export const metadata = { title: "JobPulse" };
-export default function Layout({ children }: { children: React.ReactNode }) {
+import type { Metadata } from "next";
+export const metadata: Metadata = {
+  title: "JobPulse - Your search, in focus",
+  description:
+    "Monitor official company careers and discover jobs that match your profiles.",
+};
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
     <html lang="en">
-      <body>
-        <header className="nav">
-          <Link href="/dashboard" className="font-bold">
-            JobPulse
-          </Link>
-        </header>
-        <main className="page">{children}</main>
-      </body>
+      <body>{children}</body>
     </html>
   );
 }
