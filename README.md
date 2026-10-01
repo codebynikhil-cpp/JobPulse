@@ -1,6 +1,6 @@
-# JobPulse - Phase 1
+# JobPulse - Phases 1 and 2
 
-Foundation only: accounts, sessions, PostgreSQL migrations, and a minimal Next.js shell.
+Accounts, sessions, PostgreSQL migrations, and user-owned job-search profiles.
 
 ## Run locally
 
@@ -51,3 +51,22 @@ Pytest creates a uniquely named disposable database, applies migrations from scr
 Python dependencies are locked in `backend/uv.lock` (`uv sync --frozen`); Node dependencies in `frontend/package-lock.json` (`npm ci`). For host backend development, set `DATABASE_URL` to a reachable development PostgreSQL, then run `uv sync --project backend`; run backend commands from `backend/`. No SQLite substitutes are used.
 
 Stop with `docker compose down`; this preserves PostgreSQL data. See `docs/architecture.md`, `docs/product-decisions.md`, and `docs/phase-1-validation.md`.
+
+## Manage profiles (Phase 2)
+
+After login, open Dashboard > Manage profiles, or `/profiles`. Create separate searches
+with target roles, required/preferred skills, preferred/excluded locations, exclusions,
+experience bounds and employment/work-mode preferences. Use Add or Enter for each
+individual chip. Save as an inactive draft or activate after adding a role. Edit,
+activate/deactivate or delete from the list or details page; deletion asks for confirmation.
+
+Migration 0003 adds only profile/configuration tables; Phase 1 authentication is unchanged.
+Rebuild the same Compose stack to apply it locally. No new services or dependencies.
+
+```sh
+python scripts/smoke_profiles.py
+```
+
+All backend tests still run with the existing pytest command, including both phases
+and an upgrade/downgrade round-trip in an isolated PostgreSQL database. See
+`docs/api.md`, `docs/database.md` and `docs/phase-2-validation.md` for contracts and results.

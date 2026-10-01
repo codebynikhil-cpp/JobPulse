@@ -2,10 +2,12 @@ from fastapi import FastAPI
 from sqlalchemy import text
 
 from app.api.auth import router
+from app.api.profiles import router as profiles_router
 from app.db.session import SessionLocal
 
 app = FastAPI(title="JobPulse")
 app.include_router(router)
+app.include_router(profiles_router)
 
 
 @app.get("/api/health")

@@ -16,3 +16,35 @@
 No product deviations or Phase 2 work.
 
 The frontend overrides PostCSS to patched 8.5.28 to resolve audit findings in the framework's nested dependency, while retaining the current Next.js 15 maintenance release.
+
+## Phase 2
+
+- The user's approved Phase 2 instructions expand the spec's minimal form to a
+  usable profile management section, including list/details/edit/activation/deletion.
+  All work remains limited to user profile configuration.
+- Use four normalized child tables. The requested profile_exclusions replaces the
+  spec's starting-point profile_keywords table for excluded keyword/role terms.
+  Inclusion keywords, score thresholds, notification preferences, company selection,
+  role-group aliases and matcher behavior are deferred to their applicable phases.
+- Required/preferred skills use an explicit kind; excluded terms have a separate
+  table and keyword/role kind. Preferred/excluded locations share a unique identity
+  so conflicting location settings cannot be stored through the API.
+- Names are unique per user after NFKC, whitespace collapse and casefold. Child
+  uniqueness uses the same normalization; display names retain casing. Free-text
+  role titles are supported now without implementing future role expansion/matching.
+- PATCH treats supplied lists as complete replacements, with omission preserving
+  existing data. This keeps the API small and makes all child authorization depend
+  on a verified parent, without arbitrary child-id mutation endpoints. Internal
+  child IDs may change during replacement and are intentionally not exposed.
+- Inactive drafts can be incomplete. Activation requires at least one target role.
+  Empty preference lists mean any; experience null bounds mean unrestricted; remote
+  preferences may still specify locations. Exact selected-role/exclusion conflicts
+  and required/preferred duplication are rejected, without trying to perform matching.
+- Experience uses decimal years (0-60, one fractional digit). Database-backed
+  responses return decimal strings consistently. API inputs accept numeric values.
+- Parent-row locks serialize updates; related replacements and timestamp changes
+  are atomic. Invalid merged preferences and database uniqueness conflicts roll back
+  rather than partially deleting configuration. Collection reads use select-in loading.
+- Database cascades remove owned configuration on profile/user deletion; deleting
+  child rows never deletes their parent. All new mutable tables have timestamps.
+- No dependency or infrastructure additions. No Phase 3 implementation.

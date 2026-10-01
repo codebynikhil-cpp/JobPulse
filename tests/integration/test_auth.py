@@ -198,12 +198,12 @@ def test_secure_host_cookie(client, monkeypatch):
 
 def test_migration_from_empty_database(migrated_database):
     inspector = inspect(migrated_database)
-    assert set(inspector.get_table_names()) == {
+    assert {
         "users",
         "auth_sessions",
         "auth_rate_limits",
         "alembic_version",
-    }
+    } <= set(inspector.get_table_names())
     assert inspector.get_unique_constraints("users")[0]["column_names"] == ["email"]
     assert inspector.get_foreign_keys("auth_sessions")[0]["referred_table"] == "users"
 
