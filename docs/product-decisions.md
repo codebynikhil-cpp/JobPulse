@@ -142,3 +142,86 @@ The frontend overrides PostCSS to patched 8.5.28 to resolve audit findings in th
 - httpx moves from dev-only to runtime dependencies without adding a new library/version.
   HTTP/DNS are mocked in ordinary tests. The mandatory fixture scenario creates five
   jobs, repeats with zero new rows, then updates one job while retaining all five IDs.
+
+## Phase 5 decisions
+
+- The approved constraints supersede the spec's staged fuzzy matching suggestion:
+  Phase 5 uses deterministic exact phrases only. No additional dependencies.
+- User role names and explicit aliases precede optional seed evidence. Existing
+  profile/API storage is unchanged; aliases and thresholds are matcher input only.
+- Required skills are mandatory positive evidence. Missing/explicitly negated
+  skills fail a hard filter and force final score zero, even with strong unrelated
+  evidence. Unknown optional fields earn no points and do not hard-reject.
+- Default threshold 60 and initial weights 35/25/10/10/15/5 live in ScoringConfig.
+  Missing/unconfigured components earn zero; weights are never redistributed.
+- Canonical Job is unchanged. Work mode remains unknown; no location-text guess.
+- Experience precedence: structured bounds, explicit numeric text, cautious wording,
+  cautious titles. Only structured/numeric requirements can hard-reject above the
+  profile maximum; ambiguous titles cannot reject or earn experience points.
+- MatchResult includes hard-filter statuses, all component points/evidence,
+  positive/negative evidence, experience provenance and final score/decision.
+  Pre-filter component scores remain diagnostic when final score is forced to zero.
+- The full lexical contract and limitations are in docs/matching.md. Ten synthetic
+  hand-authored acceptance examples supplement 30+ realistic parser cases. No
+  real-job evaluation metrics are claimed. No Phase 6 work is included.
+
+## Phase 6 decisions
+
+- The approved monitoring flow uses a sequential asyncio worker process and existing
+  PostgreSQL session advisory locks. No scheduler library, queue, new service or
+  adapter. Worker startup is explicit, separate from web-worker startup.
+- Both monitored/manual source runs and low-level Phase 4 ingestion share the same
+  source lock. Row locks/transactions are held only during persistence/evaluation,
+  not while fetching. Due checks respect company enabled/source active, polling,
+  and AVAILABLE_ADAPTERS independently from persisted source classification.
+- Add explicit profile_companies subscriptions with an owner-checked internal helper
+  and CLI. No selections means no applicable profiles, not all companies. This fills
+  the Phase 3-deferred association needed for correct profile selection, without UI.
+- Extend ingestion with an optional transaction callback. Monitoring uses its existing
+  classifications and atomically records durable matching work with job writes.
+  New/hash-changed/reopened jobs evaluate; unchanged jobs do not, except recovery work.
+- JobMatch is current job/profile state with a composite primary key, complete matcher
+  evidence and job/profile/config identities. It is not historical evaluation or
+  a notification event. Matcher errors are unknown, not rejects, and leave work
+  pending. Phase 7 must add its own transactional notification intent/deduplication.
+- Use per-job transactions, profile savepoints and keyset pages to bound datasets and
+  isolate profile failures. Identical successful evaluations preserve their rows on
+  retry. Current-state reads are owner scoped and hide stale profile/job evidence.
+- MonitorRun persists start/completion/counts/status/safe error context. Interrupted
+  running records become abandoned on the next acquired source run. Busy attempts
+  return structured results without creating an additional run record.
+- Implement the source-of-truth Phase 6 closure/health policy: two clean missing
+  observations close jobs; failures/anomalies do not advance missing counters.
+  Zero after a nonzero baseline or a drop over configurable 50% is anomalous.
+  Failure/anomaly health escalates at 3 and auto-pauses at configurable 5. Historical
+  error timestamps survive recovery. Canonical Job and pure Phase 5 matcher unchanged.
+- Settings/environment configuration owns tick/timeout/batch/anomaly/pause values.
+  A bounded due batch runs per tick; one failure does not stop other sources.
+- No notifications, new user-facing UI, embeddings/LLMs/fuzzy matching, new adapters,
+  microservices or Phase 7 implementation. See docs/monitoring.md for the full contract.
+
+## Phase 6 company-career architecture correction
+
+The product monitors official company career sites selected by users. ATS/platform classification is an implementation detail of acquiring jobs from those company sites.
+
+- Review confirms Phases 1-5 remain compatible: global companies/source-scoped jobs,
+  Greenhouse RawJob acquisition, canonical normalization/upsert and the pure matcher
+  are reused. No additional production company adapter or completed-phase rewrite.
+- Add migration 0006 source career_url, acquisition_method (http/browser) and optional
+  adapter_key. Legacy HTTP rows retain an unknown null career URL; no URL is invented.
+  Browser rows require a URL; the existing six source classifications are unchanged.
+- Runtime registration checks adapter/platform/acquisition together. Greenhouse/http
+  remains the sole production entry; browser source classification never implies
+  implemented extraction. Explicit unknown keys or mismatched methods are unsupported.
+- Correct scheduled selection to require an active user profile's company subscription.
+  Manual diagnostics may run enabled supported unselected sources. Canonical jobs and
+  companies remain shared globally, while match state remains profile-owned.
+- Add abstract BrowserSourceAdapter and Local/Browserbase Playwright providers with
+  bounded sessions and deterministic fixture tests. Browserbase is optional infrastructure,
+  environment configured, with create/connect/release protocol tests and a separate
+  unexecuted live provider probe. No CAPTCHA solving, stealth, AI browser agents or
+  generic production scraper.
+- Browser requests/redirects use trusted host/public-IP guards; production public-only
+  network egress remains required. Local fixture exceptions exist only in test code.
+- See docs/company-career-sources.md for configuration, provider lifecycle, test strategy
+  and explicit unverified live behavior. Phase 7 remains unimplemented.

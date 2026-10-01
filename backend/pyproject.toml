@@ -13,6 +13,7 @@ dependencies = [
     "argon2-cffi>=23.1",
     "email-validator>=2.2",
     "httpx>=0.28,<1",
+    "playwright>=1.58,<2",
 ]
 [dependency-groups]
 dev = ["pytest>=8,<10", "httpx>=0.28,<1", "ruff>=0.9", "pre-commit>=4,<5"]

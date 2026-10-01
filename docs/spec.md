@@ -354,3 +354,37 @@ Sign up -> create "Software Engineer Fresher" profile -> select sources -> activ
 - `docs/architecture.md`: components, data flow, adapter and matcher interfaces, monitoring workflow
 - `docs/product-decisions.md`: decisions, trade-offs, deviations from this spec
 - `docs/evaluation.md`: evaluation method and results
+
+### Phase 5 approved refinement
+
+The implemented Phase 5 contract is [matching.md](matching.md). Its approved
+constraints refine section 7: exact matching only (fuzzy/semantic deferred), user
+roles/aliases before optional seeds, mandatory required-skill evidence with
+hard-failure zeroing, configurable weights 35/25/10/10/15/5 and threshold 60,
+structured explainable results, and conservative experience provenance. Unknown
+optional data earns no points and never independently hard-rejects; uncertain title
+signals neither earn numeric experience points nor cause numeric rejection.
+Canonical Job has no work mode and remains unchanged. No matching persistence,
+scheduler, notifications or new UI in this phase.
+
+### Phase 6 approved refinement
+
+Phase 6 implements scheduling, orchestration, health/absence/anomaly behavior,
+explicit internal profile/company subscriptions and durable current match state.
+The detailed contract is [monitoring.md](monitoring.md). Notification creation in
+section 8 is deferred to Phase 7; current match rows are not notification events.
+Migration 0005 leaves canonical Job unchanged. Phase 5 matching logic remains
+unchanged and database/network free. No public monitoring API/UI or additional
+source adapters are introduced.
+
+### Phase 6 company-career clarification
+
+The product monitors official company career sites selected by users. ATS/platform classification is an implementation detail of acquiring jobs from those company sites.
+
+The approved correction adds first-class HTTP/browser acquisition, local and optional
+Browserbase Playwright providers, and deterministic local career-site tests. This
+supersedes the default "Playwright off" guidance for the browser foundation only;
+no additional production company adapters are implemented. Migration 0006 stores
+official URL/acquisition/adapter metadata independently of the six source types.
+Scheduled sources must be selected by an active profile. Completed Phases 1-5 remain
+compatible and are preserved. See company-career-sources.md for the full contract.

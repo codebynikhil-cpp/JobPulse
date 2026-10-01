@@ -58,9 +58,10 @@ Stop with `docker compose down`; this preserves PostgreSQL data. See `docs/archi
 Only `source_type="greenhouse"` has a production adapter. Configure its source with
 `{"board_token": "your-public-board-token"}` using internal persistence tooling, then
 invoke `docker compose exec -T backend python -m app.ingest SOURCE_UUID` explicitly.
-The command makes a live request; automated tests use mocks and fixtures. No public
-source-management/ingestion endpoint, scheduler, job dashboard, matching or delivery
-is implemented. Other stored source types remain valid classifications.
+The command makes a live request; automated tests use mocks and fixtures. This is
+low-level ingestion tooling; use Phase 6 monitoring below for scheduling and matching.
+There is no public source-management endpoint, job dashboard or notification delivery.
+Other stored source types remain valid classifications.
 
 See `docs/greenhouse.md` for the verified API contract and
 `docs/phase-4-validation.md` for test commands/results.
@@ -92,9 +93,28 @@ Internal persistence services flush writes; callers explicitly commit or roll ba
 transactions. See docs/api.md and docs/database.md for the data contracts.
 
 Source classifications are exactly greenhouse, lever, ashby, workday, api and custom.
-All six can be stored, but no adapters are implemented yet. Stored type and active
-flags never claim monitoring support. Phase 4 will implement Greenhouse only.
+All six can be stored. Greenhouse is the only implemented production adapter;
+stored classification alone never claims runtime monitoring support.
 
 The existing backend test command runs all three phase suites, including source-type
 persistence, database uniqueness/foreign-key/check violations, deletion restrictions,
 transaction rollback and migration round trips. Results are in docs/phase-3-validation.md.
+
+## Monitoring (Phase 6)
+
+Migration 0005 adds explicit profile/company subscriptions, durable run results,
+pending matching work, absence counters and one current match state per job/profile.
+The scheduled worker reuses ingestion and the deterministic matcher. It runs only
+when explicitly invoked; see [docs/monitoring.md](docs/monitoring.md) for configuration,
+manual runs, subscriptions, recovery and closure policies.
+
+```sh
+docker compose exec -T backend python -m app.monitor --help
+docker compose exec -T backend python -m app.monitor due
+docker compose exec -T backend python -m app.monitor worker
+```
+
+These `due`/`worker` commands fetch eligible configured Greenhouse sources. Tests use
+FakeSource/mocks and real local Playwright fixture sites. No notifications or new UI
+are implemented. See [company career acquisition](docs/company-career-sources.md)
+for source metadata, browser providers, adapter contracts and security boundaries.

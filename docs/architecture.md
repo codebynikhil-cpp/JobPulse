@@ -118,3 +118,61 @@ The source and company must already exist, with config `{ "board_token": "..." }
 This explicit command performs a network request; the ordinary suite does not.
 Manual invocation is allowed regardless of active/enabled flags, which remain future
 scheduling configuration. The caller is trusted internal tooling, not a public API.
+
+## Phase 5 standalone matching
+
+`app.matching` contains immutable inputs/results, a Matcher protocol, exact phrase
+normalization, an optional small role seed, pure experience parsing and configurable
+scoring. It accepts canonical materialized Job-like values without importing the
+canonical schema/model or reading database state. MatchingProfile captures explicit
+roles/aliases, required/preferred skills, locations, exclusions and preferences.
+ScoringConfig owns defaults and is injected into DeterministicMatcher.
+
+Flow: inputs -> hard-filter diagnostics -> experience/role/skill evidence -> six
+component scores -> hard-failure zeroing -> configured threshold -> MatchResult.
+Every awarded component carries evidence; uncertain and absent evidence remain
+visible. The matcher does not integrate with ingestion or write matches. No new
+routes, UI, schema, migrations, scheduler or notifications are introduced. See
+[matching.md](matching.md) for precedence, hard requirements and unknown semantics.
+
+## Phase 6 monitoring
+
+An explicitly supervised `python -m app.monitor worker` process uses the same
+backend image/database. The sequential loop queries a bounded due-source batch,
+acquires a shared PostgreSQL advisory source lock, and calls the existing ingestion
+service. Optional ingestion transaction hooks record clean observations, closure
+counters and pending matching work atomically with canonical job writes.
+
+`app.monitoring.evaluation` pages pending jobs and subscribed active profiles,
+materializes profile preferences into the existing MatchingProfile, invokes the
+unchanged Matcher, and upserts current JobMatch state. Transactions/savepoints
+isolate failures; pending flags recover work after partial execution. MonitorRun
+records durable run metadata and results; SourceMonitorState/JobMonitorState keep
+absence/anomaly evidence separate from the canonical Job schema. Source locks also
+cover the Phase 4 manual ingestion command.
+
+Migration 0005 adds these tables and explicit ProfileCompany subscriptions. No
+profile/company UI or HTTP monitoring endpoints. Trusted CLI subcommands provide
+subscription configuration, one source run, due batch, worker and run inspection.
+Owner-scoped current match reads are available internally for future consumers.
+No notification rows/outbox/provider/scheduler microservice is introduced. See
+[monitoring.md](monitoring.md) for recovery, eligibility, health and data semantics.
+
+## Official company career sources and dual acquisition
+
+The product monitors official company career sites selected by users. ATS/platform classification is an implementation detail of acquiring jobs from those company sites.
+
+Migration 0006 adds source career_url/acquisition_method/adapter_key. Shared global
+companies and canonical source-scoped jobs continue serving independently owned
+profiles via ProfileCompany. Due selection now requires at least one active company
+subscription. Runtime registry entries describe adapter/platform/acquisition capability;
+Greenhouse/http remains the only production entry. The HTTP adapter is unchanged.
+
+`BrowserSourceAdapter -> BrowserProvider -> isolated Playwright Page` is the browser
+boundary. Company adapters implement readiness, extraction and navigation; optional
+request observation is scoped to an adapter. LocalPlaywrightProvider and optional
+BrowserbasePlaywrightProvider share page lifecycle/security controls. Both return
+RawJob through the same ingestion/normalizer/upsert/Matcher pipeline; no matching
+logic is introduced into acquisition. Real local JavaScript/HTTP fixtures verify
+this pipeline for two companies and two users. No production browser company adapter
+or notification component is introduced. See [company-career-sources.md](company-career-sources.md).

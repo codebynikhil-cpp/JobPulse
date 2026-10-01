@@ -3,7 +3,15 @@ import uuid
 from datetime import datetime
 from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, JsonValue, field_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    HttpUrl,
+    JsonValue,
+    field_validator,
+    model_validator,
+)
 
 from app.core.catalog import SourceType
 
@@ -52,8 +60,19 @@ class SourceCreate(DataModel):
     company_id: uuid.UUID
     source_type: SourceType
     config: dict[str, JsonValue] = Field(default_factory=dict)
+    career_url: HttpUrl | None = Field(default=None, max_length=2048)
+    acquisition_method: Literal["http", "browser"] = "http"
+    adapter_key: str | None = Field(default=None, max_length=64, pattern=r"^[a-z][a-z0-9_-]*$")
     active: bool = False
     poll_interval_sec: int = Field(default=3600, ge=60, le=2147483647)
+
+    @model_validator(mode="after")
+    def career_source(self):
+        if self.acquisition_method == "browser" and self.career_url is None:
+            raise ValueError("Browser acquisition requires an official career URL")
+        if self.career_url and (self.career_url.username or self.career_url.password):
+            raise ValueError("Career URLs cannot contain credentials")
+        return self
 
 
 class SourceOut(SourceCreate):

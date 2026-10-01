@@ -1,0 +1,24 @@
+﻿<!doctype html><html><body><h1>Company A Careers</h1><section id="jobs"></section><button id="next">Next</button><button id="more">Load more</button>
+<script>
+let number=1;
+const mode=new URLSearchParams(location.search).get('mode') || 'pages';
+async function load(append=false) {
+  document.body.removeAttribute('data-ready');
+  const response=await fetch(`/a/data?page=${number}&mode=${mode}`);
+  const payload=await response.json();
+  const jobs=document.querySelector('#jobs');
+  if (!append) jobs.replaceChildren();
+  for (const job of payload.jobs) {
+    const article=document.createElement('article'); article.dataset.id=job.id;
+    if (job.title) {const title=document.createElement('a');title.className='title';title.textContent=job.title;title.href=job.url;article.append(title);}
+    const description=document.createElement('p');description.textContent=job.description;article.append(description);
+    jobs.append(article);
+  }
+  document.querySelector('#next').hidden=!payload.more || mode==='loadmore';
+  document.querySelector('#more').hidden=!payload.more || mode!=='loadmore';
+  document.body.dataset.ready=String(number);
+}
+document.querySelector('#next').onclick=()=>{number++;load();};
+document.querySelector('#more').onclick=()=>{number++;load(true);};
+if (mode!=='timeout') setTimeout(()=>load(),20);
+</script></body></html>

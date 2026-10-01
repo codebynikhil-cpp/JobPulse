@@ -30,7 +30,9 @@ def create_company(db: Session, data: CompanyCreate) -> Company:
 
 def create_source(db: Session, data: SourceCreate) -> JobSource:
     get_company(db, data.company_id)
-    source = JobSource(**data.model_dump())
+    values = data.model_dump()
+    values["career_url"] = str(data.career_url) if data.career_url else None
+    source = JobSource(**values)
     db.add(source)
     db.flush()
     return source

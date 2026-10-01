@@ -43,6 +43,13 @@ class JobSource(Timestamps, Base):
             name="ck_job_sources_health",
         ),
         CheckConstraint("jsonb_typeof(config) = 'object'", name="ck_job_sources_config"),
+        CheckConstraint(
+            "acquisition_method IN ('http','browser')", name="ck_job_sources_acquisition"
+        ),
+        CheckConstraint(
+            "acquisition_method != 'browser' OR career_url IS NOT NULL",
+            name="ck_job_sources_browser_url",
+        ),
     )
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
     company_id: Mapped[uuid.UUID] = mapped_column(
@@ -60,6 +67,11 @@ class JobSource(Timestamps, Base):
         )
     )
     config: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict)
+    career_url: Mapped[str | None] = mapped_column(String(2048))
+    acquisition_method: Mapped[str] = mapped_column(
+        String(16), default="http", server_default="http"
+    )
+    adapter_key: Mapped[str | None] = mapped_column(String(64))
     active: Mapped[bool] = mapped_column(Boolean, default=False)
     poll_interval_sec: Mapped[int] = mapped_column(Integer, default=3600)
     last_checked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))

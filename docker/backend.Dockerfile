@@ -2,6 +2,8 @@ FROM ghcr.io/astral-sh/uv:python3.13-bookworm-slim
 WORKDIR /app
 COPY backend/pyproject.toml backend/uv.lock ./
 RUN uv sync --frozen
+ENV PLAYWRIGHT_BROWSERS_PATH="/ms-playwright"
+RUN uv run playwright install --with-deps chromium
 COPY backend/ ./
 COPY tests/ /tests/
 RUN useradd --uid 10001 --create-home app && chown -R app:app /app

@@ -317,6 +317,11 @@ def test_schema_inventory_and_indexes(migrated_database):
         "companies",
         "job_sources",
         "jobs",
+        "profile_companies",
+        "monitor_runs",
+        "source_monitor_state",
+        "job_monitor_state",
+        "job_matches",
     }
     indexes = {tuple(item["column_names"]) for item in inspector.get_indexes("jobs")}
     assert {

@@ -72,3 +72,25 @@ and rejects null characters/nonfinite JSON numbers before writes. No URLs are fe
 0004 upgrades from 0003 or applies with previous migrations from empty. Downgrading
 0004 drops only jobs, job_sources and companies in dependency order, preserving
 profiles/authentication. Round trips are tested only in disposable test databases.
+
+## Phase 6 monitoring persistence
+
+Migration 0005 adds profile_companies (composite profile/company key), monitor_runs
+(source/start index and durable structured result), source_monitor_state (last clean
+board count), job_monitor_state (missing counters and pending evaluation), and
+job_matches (composite profile/job key and current explainable evaluation state).
+Foreign keys cascade when their owning profile/job/source is explicitly removed;
+canonical company/source/job deletion restrictions remain unchanged. Match state
+constraints distinguish evaluated matched/rejected scores from nullable unknown
+matcher errors. No canonical Job fields are added.
+
+New/changed ingestion and durable work enqueue share a transaction. Match results
+commit in per-job transactions with per-profile savepoints. Identities/hashes prevent
+successful identical reevaluation during retries. These tables do not implement
+notification intent, user actions, or full evaluation history. See monitoring.md.
+
+Migration 0006 adds nullable `job_sources.career_url`, `acquisition_method` with
+default `http` and an http/browser check, and nullable `adapter_key`. Browser sources
+require a career URL. Legacy HTTP rows retain unknown URLs rather than fabricated
+values. ATS classification remains the existing six-value enum, independent of
+acquisition and runtime adapter availability. Canonical Job remains unchanged.
