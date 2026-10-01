@@ -1,0 +1,10 @@
+{
+  "jobs": [
+    {"id": 101, "internal_job_id": 800, "title": "Software Engineer", "location": {"name": "New York"}, "content": "&lt;p&gt;Build reliable services.&lt;/p&gt;", "absolute_url": "https://job-boards.greenhouse.io/acme/jobs/101", "updated_at": "2026-09-20T10:00:00Z", "metadata": null},
+    {"id": 102, "internal_job_id": 801, "title": "Data Engineer", "location": {"name": "London"}, "content": "<p>Build data pipelines.</p>", "absolute_url": "https://job-boards.greenhouse.io/acme/jobs/102", "updated_at": "2026-09-20T10:00:00Z", "metadata": []},
+    {"id": 103, "internal_job_id": null, "title": "Future Opportunities", "location": {"name": "Remote"}, "content": "<p>Join our talent pool.</p>", "absolute_url": "https://job-boards.greenhouse.io/acme/jobs/103"},
+    {"id": 104, "title": "Product Designer", "location": {"name": "Paris"}, "content": "<p>Design products.</p>", "absolute_url": "https://job-boards.greenhouse.io/acme/jobs/104"},
+    {"id": 105, "title": "Analyst", "location": {"name": ""}, "content": "<p>Analyze operations.</p>", "absolute_url": "https://job-boards.greenhouse.io/acme/jobs/105"}
+  ],
+  "meta": {"total": 5}
+}

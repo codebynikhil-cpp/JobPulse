@@ -1,6 +1,7 @@
-# JobPulse - Phases 1-3
+# JobPulse - Phases 1-4
 
 Accounts, sessions, user-owned job-search profiles, and company/source/job persistence.
+Phase 4 adds manual Greenhouse ingestion with normalization and idempotent persistence.
 
 ## Run locally
 
@@ -51,6 +52,18 @@ Pytest creates a uniquely named disposable database, applies migrations from scr
 Python dependencies are locked in `backend/uv.lock` (`uv sync --frozen`); Node dependencies in `frontend/package-lock.json` (`npm ci`). For host backend development, set `DATABASE_URL` to a reachable development PostgreSQL, then run `uv sync --project backend`; run backend commands from `backend/`. No SQLite substitutes are used.
 
 Stop with `docker compose down`; this preserves PostgreSQL data. See `docs/architecture.md`, `docs/product-decisions.md`, and `docs/phase-1-validation.md`.
+
+## Manual ingestion (Phase 4)
+
+Only `source_type="greenhouse"` has a production adapter. Configure its source with
+`{"board_token": "your-public-board-token"}` using internal persistence tooling, then
+invoke `docker compose exec -T backend python -m app.ingest SOURCE_UUID` explicitly.
+The command makes a live request; automated tests use mocks and fixtures. No public
+source-management/ingestion endpoint, scheduler, job dashboard, matching or delivery
+is implemented. Other stored source types remain valid classifications.
+
+See `docs/greenhouse.md` for the verified API contract and
+`docs/phase-4-validation.md` for test commands/results.
 
 ## Manage profiles (Phase 2)
 

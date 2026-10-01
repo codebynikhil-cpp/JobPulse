@@ -84,3 +84,37 @@ Existing session-protected profile/auth flows are unchanged. All mutable tables 
 one timestamp mixin, extracted without changing the Phase 2 schema. No infrastructure
 or dependency additions. No fetching, adapters, normalizer, deduplication pipeline,
 monitoring, matching or delivery modules have been implemented.
+
+## Phase 4 source ingestion
+
+`source_type="greenhouse"` is currently the only source type with an implemented
+adapter. The six persisted classifications remain valid independently. The source
+registry selects Greenhouse at invocation time; it does not alter persistence
+validation. FakeSource implements the same interface only for deterministic tests.
+
+The pipeline is `JobSourceAdapter.fetch_jobs -> list[RawJob] -> normalize_job ->
+JobCreate -> upsert_job`. Adapters expose provider data without database access;
+the provider-neutral normalizer handles text, URLs and hashing; PostgreSQL handles
+identity and transactional writes. `health_check -> HealthResult` is available for
+manual use, with no periodic checks. Greenhouse uses the public complete-board GET,
+an injected async HTTP client, a fixed official host and validated board token.
+
+`ingest_source` owns transactions via an injected session factory. Fetching and
+validation precede writes. Source-row locking serializes persistence; runs older
+than the latest completed check are rejected. Job insertion uses PostgreSQL
+ON CONFLICT DO NOTHING against (source_id, external_job_id), followed by a locked
+existing-row update when needed. IDs and first_seen_at survive repeats and changes.
+Success metadata commits atomically with jobs; failures roll back job writes and
+record checked/error timestamps separately before raising IngestionError with a
+result. Missing jobs are retained; closure detection remains Phase 6.
+
+IngestionResult reports fetched, normalized, created, updated, unchanged, failed
+and duration. A failed run reports zero committed creations/updates; failed_count
+counts the fetched batch (or one source failure if nothing was fetched). No durable
+monitor-run tables, public endpoints, dashboard features or scheduler are added.
+
+Manual live invocation: `docker compose exec -T backend python -m app.ingest SOURCE_UUID`.
+The source and company must already exist, with config `{ "board_token": "..." }`.
+This explicit command performs a network request; the ordinary suite does not.
+Manual invocation is allowed regardless of active/enabled flags, which remain future
+scheduling configuration. The caller is trusted internal tooling, not a public API.

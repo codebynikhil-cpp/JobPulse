@@ -103,3 +103,42 @@ The frontend overrides PostCSS to patched 8.5.28 to resolve audit findings in th
   checks. No speculative monitoring-run indexes or infrastructure are added.
 - Services flush and leave commit/rollback to callers, allowing an atomic multi-table
   transaction. No provider-specific fetching or adapter availability checks exist.
+
+## Phase 4 decisions
+
+- Only Greenhouse has a production adapter. FakeSource is test-only. Valid persisted
+  Workday/Lever/Ashby/api/custom sources remain representable; trying to execute one
+  reports unavailable adapter explicitly without rejecting or deleting its record.
+- The documented Greenhouse list endpoint returns the complete board. No pagination
+  is invented; meta.total must agree with the array length. Duplicate post IDs and
+  malformed/incomplete batches fail the run instead of becoming successful empty data.
+- List updated_at is preserved in raw_data, never copied into posted_at. Employment,
+  experience and publication remain null; location text such as Remote is not treated
+  as an authoritative work-mode signal. No canonical schema migration is necessary.
+- Normalized description is plain text extracted with stdlib HTMLParser after at most
+  two entity-decode passes. Script/style contents are omitted. Original provider content
+  remains in raw_data; this is not an HTML-rendering sanitizer. Later HTML consumers
+  must still sanitize or escape external content.
+- Text uses NFKC and collapsed whitespace. URLs lowercase scheme/host, remove fragments,
+  trailing path slashes and utm_*/gclid/fbclid parameters, and sort remaining parameters.
+  Identity-bearing parameters such as gh_jid are retained. URLs are stored, never fetched.
+- SHA-256 hashes compact, sorted-key, UTF-8 JSON containing normalized title, description,
+  location, employment_type, experience_text and application_url. Case is preserved.
+  Fetch times, publication times, IDs and raw metadata do not enter the hash. Hash changes
+  classify updates; metadata-only changes refresh raw_data but count as unchanged.
+- Source-scoped external post identity is authoritative. Normalized URLs/content hashes
+  support stable change detection; they do not merge distinct external IDs or sources.
+  Cross-source/fuzzy deduplication remains Phase 10.
+- PostgreSQL uniqueness and ON CONFLICT make retry insertion safe. Existing row updates
+  preserve UUID/first_seen_at, refresh canonical/provider fields, advance last_seen_at,
+  and reopen a returned closed job. Absent jobs are never closed in this phase.
+- One ingestion call owns its transaction. Failed normalization or persistence commits
+  no jobs; failure metadata is recorded separately, and the error is raised with a
+  structured result. The last_error_at remains historical after recovery; successful
+  checks reset consecutive_failures. Full health escalation/anomaly rules wait for Phase 6.
+- Source locking serializes writes; an older fetch cannot overwrite a later completed
+  check, whether successful or failed. No database lock is held during network access. Manual runs ignore
+  scheduler activation flags intentionally. No source admin endpoints are exposed.
+- httpx moves from dev-only to runtime dependencies without adding a new library/version.
+  HTTP/DNS are mocked in ordinary tests. The mandatory fixture scenario creates five
+  jobs, repeats with zero new rows, then updates one job while retaining all five IDs.
