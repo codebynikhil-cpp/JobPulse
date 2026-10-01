@@ -1,0 +1,4 @@
+@import "tailwindcss";
+body { background: #f8fafc; color: #0f172a; }
+input { border: 1px solid #94a3b8; border-radius: .4rem; padding: .7rem; width: 100%; }
+button { cursor: pointer; }
