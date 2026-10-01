@@ -41,3 +41,46 @@ Empty state, pagination, unavailable profile and global loading/error states are
 
 See api.md and database.md for the implemented contracts. The existing three-service
 Docker topology, authentication schema, dependency locks and infrastructure are unchanged.
+
+## Phase 3 source classification and adapter availability
+
+The future `job_sources.source_type` persistence contract supports exactly these
+classifications: `greenhouse`, `lever`, `ashby`, `workday`, `api`, and `custom`.
+Database and Pydantic validation enforce that set without consulting installed
+adapters. Persistence must accept a valid type even when no adapter exists for it.
+
+Source classification and adapter availability are separate concepts. A record with
+`source_type = "workday"` identifies a Workday-classified source; it does not mean
+that the application can fetch or monitor Workday. Future runtime capability checks
+and any supported-integration labels must use adapter availability, never infer it
+from the presence of a persisted type. The `api` and `custom` classifications likewise
+do not authorize arbitrary fetching or imply a generic implemented adapter.
+
+Phase 3 implements persistence only, with no adapters or provider-specific fetching
+logic. Phase 4 implements the Greenhouse adapter only, plus FakeSource for tests.
+The six-type persistence contract does not promise six supported integrations.
+Phase 3 implements these source tables and validation rules. No adapters or
+monitoring capabilities have been added.
+
+## Phase 3 persistence implementation
+
+The monolith now persists companies, job_sources and canonical jobs. Source type
+and generic JSON configuration live on each source, not on the company, allowing
+multiple independently classified sources per company. Source health defaults to
+unknown; its counters/check timestamps and polling interval are stored metadata
+only. Active/enabled flags express configuration intent and do not execute work.
+
+SQLAlchemy models, Pydantic data contracts and internal catalog/job services implement
+create/read persistence. Services validate source-company consistency and flush
+without committing, so callers own transactions spanning companies, sources and jobs.
+Failures propagate; the caller must roll back a failed transaction. Job identity is
+UNIQUE(source_id, external_job_id); a composite foreign key also enforces that a job's
+company is the source's company. Restrictive source/company deletion preserves jobs
+until leaf records are explicitly removed; enable/active flags allow retention instead.
+
+There are no new HTTP endpoints or frontend pages in this persistence phase. Catalog
+services are trusted internal operations, not user-accessible administrative APIs.
+Existing session-protected profile/auth flows are unchanged. All mutable tables share
+one timestamp mixin, extracted without changing the Phase 2 schema. No infrastructure
+or dependency additions. No fetching, adapters, normalizer, deduplication pipeline,
+monitoring, matching or delivery modules have been implemented.

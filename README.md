@@ -1,6 +1,6 @@
-# JobPulse - Phases 1 and 2
+# JobPulse - Phases 1-3
 
-Accounts, sessions, PostgreSQL migrations, and user-owned job-search profiles.
+Accounts, sessions, user-owned job-search profiles, and company/source/job persistence.
 
 ## Run locally
 
@@ -70,3 +70,18 @@ python scripts/smoke_profiles.py
 All backend tests still run with the existing pytest command, including both phases
 and an upgrade/downgrade round-trip in an isolated PostgreSQL database. See
 `docs/api.md`, `docs/database.md` and `docs/phase-2-validation.md` for contracts and results.
+
+## Company/source/job persistence (Phase 3)
+
+Migration 0004 adds companies, job_sources and canonical jobs. Rebuild the same Compose
+stack to apply it locally. No new frontend pages, endpoints, services or dependencies.
+Internal persistence services flush writes; callers explicitly commit or roll back
+transactions. See docs/api.md and docs/database.md for the data contracts.
+
+Source classifications are exactly greenhouse, lever, ashby, workday, api and custom.
+All six can be stored, but no adapters are implemented yet. Stored type and active
+flags never claim monitoring support. Phase 4 will implement Greenhouse only.
+
+The existing backend test command runs all three phase suites, including source-type
+persistence, database uniqueness/foreign-key/check violations, deletion restrictions,
+transaction rollback and migration round trips. Results are in docs/phase-3-validation.md.

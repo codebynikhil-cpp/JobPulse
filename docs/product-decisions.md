@@ -48,3 +48,58 @@ The frontend overrides PostCSS to patched 8.5.28 to resolve audit findings in th
 - Database cascades remove owned configuration on profile/user deletion; deleting
   child rows never deletes their parent. All new mutable tables have timestamps.
 - No dependency or infrastructure additions. No Phase 3 implementation.
+
+## Phase 3 source classification constraint
+
+- The persisted `job_sources.source_type` field must accept exactly `greenhouse`,
+  `lever`, `ashby`, `workday`, `api`, and `custom`. These values classify a source;
+  they do not declare an implemented integration or monitoring capability.
+- Persistence validation must enforce this fixed set independently of adapter
+  availability. A valid classification must not be rejected because its adapter
+  is absent. For example, `source_type = "workday"` can be stored without claiming
+  that Workday monitoring is supported.
+- Adapter availability is a separate runtime capability, to be introduced in the
+  applicable later phase. A stored classification alone must never enable fetching
+  or be presented as evidence that monitoring is supported.
+- Phase 3 adds no adapters or provider-specific fetching logic. Phase 4 implements
+  the Greenhouse adapter only (with FakeSource for tests, as specified). The other
+  five persisted classifications do not become supported integrations in Phase 4.
+- Phase 3 now implements this user requirement in migration 0004, the source model
+  and Pydantic schema. No adapter-availability registry or integration is implemented.
+
+## Phase 3 persistence decisions
+
+- Keep company name/slug/enabled metadata in companies. Classification and source
+  configuration live only in job_sources, refining the spec's starting-point
+  redundant company ats_type/source_config fields. A company can have several sources
+  with different classifications; no duplicated source configuration can drift.
+- Enforce the six source values using a named PostgreSQL CHECK constraint and a
+  matching Python string enum. No native database enum migration lifecycle is needed.
+  FakeSource is a later test adapter, never a seventh persisted source classification.
+- Source health defaults to unknown, active to false. Health/check/poll fields are
+  persisted for future phases only; no availability is inferred or checking scheduled.
+  Source configuration accepts generic JSON objects, without provider-specific logic.
+- Source UUID is its identity: multiple sources per company and type are allowed.
+  Job uniqueness is scoped to source UUID plus opaque external id. Inserting an
+  existing identity raises a database uniqueness error; automatic upsert, change
+  detection, URL normalization and cross-source deduplication wait until later phases.
+- Jobs redundantly store company_id for company filtering; a composite source/company
+  foreign key prevents inconsistency, including direct SQL writes. The supporting
+  unique source id/company tuple exists for this referential constraint.
+- Company/source deletion uses RESTRICT to preserve job history. Explicitly remove
+  jobs before sources and sources before companies if deletion is actually intended.
+  Disabled companies and inactive sources retain their records. No user-profile
+  associations to companies, source administration endpoints or job UI are added yet.
+- Canonical jobs store lifecycle open/closed, separate from future per-user
+  new/saved/applied/ignored actions. Closed records require closed_at >= last_seen_at;
+  first_seen_at <= last_seen_at. Stored closed status never runs closure detection.
+- Unknown employment/experience are nullable. Canonical experience allows 0-100 years,
+  one decimal place, with ordered bounds; parsing remains Phase 5. Content hash is
+  nullable until a normalizer supplies it; supplied hashes must be lowercase SHA-256.
+  URL syntax is validated but never fetched. External content is stored but not
+  rendered or emailed; later consumers must sanitize it before those operations.
+- Required indexes support source identity lookup, content-hash lookup, company/closed
+  filtering and first-seen sorting. Source/company FK indexes also support referential
+  checks. No speculative monitoring-run indexes or infrastructure are added.
+- Services flush and leave commit/rollback to callers, allowing an atomic multi-table
+  transaction. No provider-specific fetching or adapter availability checks exist.

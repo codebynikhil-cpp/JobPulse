@@ -44,7 +44,7 @@ def migrated_database():
 @pytest.fixture(autouse=True)
 def empty_tables(migrated_database):
     with migrated_database.begin() as conn:
-        conn.execute(text("TRUNCATE auth_sessions, auth_rate_limits, users CASCADE"))
+        conn.execute(text("TRUNCATE auth_sessions, auth_rate_limits, users, companies CASCADE"))
 
 
 @pytest.fixture

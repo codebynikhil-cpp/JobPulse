@@ -80,3 +80,25 @@ or foreign-owned profile; 409 duplicate profile name; 422 invalid payload/ID/pre
 Unknown fields (including user_id/profile_id/child IDs in bodies) are rejected.
 No request can transfer ownership. Standard Pydantic validation errors have a detail
 array; business validation also returns a detail array; other errors use a detail string.
+
+## Phase 3 internal persistence contracts
+
+Phase 3 adds no HTTP endpoints or browser-facing source/job management. The approved
+scope is storage: app.schemas.catalog exposes CompanyCreate/CompanyOut and
+SourceCreate/SourceOut; app.schemas.job exposes JobCreate/JobOut. Internal catalog
+services create/get companies and sources and list a company's sources. Job services
+create/get jobs, look up a source/external id, and list a company's jobs (bounded to 100).
+Callers supply a SQLAlchemy Session and own commit/rollback; writes flush and propagate
+constraint errors. These are trusted backend operations, not user/admin APIs.
+
+SourceCreate accepts company_id, source_type, generic config object, active (default
+false) and poll_interval_sec (default 3600). Exactly six source types are allowed,
+independent of adapter availability. For example source_type="workday" persists
+without a Workday integration; no supported/adapter_available field is returned.
+Health metadata in SourceOut starts unknown, never healthy merely because a type exists.
+
+JobCreate accepts the canonical fields documented in database.md. company_id must
+match its source. application_url is required and syntax-validated; unknown employment,
+experience, posted date, source URL and content hash can be null. first_seen_at defaults
+to now; last_seen_at defaults to first_seen_at. External IDs remain opaque: no matching,
+URL stripping, content-hash computation, re-alert logic or automatic duplicate handling.
