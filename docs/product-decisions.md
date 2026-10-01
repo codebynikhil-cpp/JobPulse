@@ -236,3 +236,64 @@ The product monitors official company career sites selected by users. ATS/platfo
 - **Delivery Semantics:** Honest at-least-once delivery with provider-side deduplication. Because public email networks cannot guarantee strict exactly-once delivery, idempotency keys are used to prevent duplicate delivery on worker crash/recovery scenarios.
 - **Bounded Retries:** Differentiates transient failures (network timeouts, 429 rate limits, 5xx server errors) from permanent rejections (invalid recipients, 401/403 authorization failures, 400/422 invalid payload errors). Transient errors retry with bounded exponential backoff (`delay = min(cap_seconds, base_seconds * 2^(attempts-1))`) up to `max_attempts`, after which the record transitions to `permanently_failed`. Permanent errors fail immediately without retry.
 
+
+
+## Phase 8: personal dashboard and ownership
+
+The authenticated workspace contains Dashboard, Jobs, Saved, Applied,
+Notifications, Profiles, Companies and Account. There is no admin role or admin
+workspace. The original spec's administrative/debug endpoints do not apply to
+this phase. Next.js proxies forward session cookies and origin; backend mutation
+routes use the same origin validation as profile mutations.
+
+Canonical `jobs` remain shared. `user_job_interactions` has a unique
+`(user_id, job_id)` identity and saved/applied/ignored states. An absent row means
+new; restore deletes only that user's row. Status updates never write canonical
+jobs. Feed, detail and status access require an evaluated positive match through
+an active profile owned by the authenticated user. A job appears once regardless
+of how many profiles match; all matching profiles and persisted reason strings
+are displayed. Deactivating a profile removes its matches from current feed
+access; interaction history remains stored and counted in the overview.
+
+`notifications.read_at` represents UI read state independently of email/outbox
+status. Public serialization omits provider errors and internal payloads.
+Notifications and delivery aggregates are owner scoped; read-all only updates
+that user's unread rows. Application links come from the persisted application
+URL. Read changes leave delivery state untouched.
+
+ProfileCompany remains the subscription identity. Company discovery lists enabled
+companies, with subscription status and official career URL. Subscribing without a
+profile ID targets all active owned profiles; a specific profile must be owned.
+Source IDs, health, check timestamps and acquisition metadata are returned only
+for monitored companies. The health endpoint requires an active owned subscribed
+profile. No canonical company/job editing API is added for ordinary users.
+
+Source health uses current scheduler state, not historical last_error_at:
+missing/inactive source, disabled company or unsupported status -> unsupported;
+3+ consecutive failures or active failing state -> failing; 1-2 failures or
+active degraded state (including acquisition anomalies) -> degraded; otherwise
+healthy. A successful normal run resets active failures; old error timestamps
+never permanently mark a source failing. Never-checked healthy sources still show
+last checked/last success as unavailable, not an invented check time.
+
+Jobs use SQL filtering for profile/company/location/open or closed status,
+interaction status, score, employment type, title/description/company search and
+first discovery timestamp. Pagination defaults to 20, capped at 100. A distinct
+job query counts before LIMIT/OFFSET; matching profile data is fetched only for
+that page. Ignored jobs are hidden by default. Saved/applied views include closed
+jobs. Sort is posted/discovered timestamp then job ID. Notifications use bounded
+limit/offset, sorted by creation time and ID. Indexes support user/status lookup,
+user/read lookup and user/created_at/id notification ordering. No search engine.
+
+Migrations 0008 and 0009 add interactions/read state and notification ordering.
+0009 is separate because the inherited development database already had 0008.
+Browser verification uses persisted FakeSource data and local Chromium; it does
+not depend on Browserbase, live company access or an email provider.
+
+Disabled companies remain visible to current subscribers as unsupported. For a
+company with multiple sources, the company health card uses the most severe
+source state (unsupported > failing > degraded > healthy), with source ID as a
+deterministic tie-breaker. Its timestamps/method refer to that representative
+source; the health API remains individually scoped by source ID. Migration 0010
+repairs inherited development column drift to Phase 7's Text contract without
+truncating stored errors.

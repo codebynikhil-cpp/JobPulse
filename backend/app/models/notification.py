@@ -24,6 +24,8 @@ class Notification(Timestamps, Base):
     __table_args__ = (
         UniqueConstraint("user_id", "job_id", "kind", "revision", name="uq_notifications_identity"),
         Index("ix_notifications_due", "status", "available_at", "id"),
+        Index("ix_notifications_user_read", "user_id", "read_at"),
+        Index("ix_notifications_user_created", "user_id", "created_at", "id"),
         CheckConstraint("kind IN ('new_job','changed_job')", name="ck_notifications_kind"),
         CheckConstraint(
             "status IN ('pending','processing','failed','sent','permanently_failed','cancelled')",
@@ -53,7 +55,52 @@ class Notification(Timestamps, Base):
     last_error: Mapped[str | None] = mapped_column(Text)
     sent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     provider_id: Mapped[str | None] = mapped_column(String(128))
+    read_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
     @property
     def next_attempt_at(self) -> datetime:
         return self.available_at
+
+    @property
+    def is_read(self) -> bool:
+        return self.read_at is not None
+
+    @property
+    def company_name(self) -> str:
+        if isinstance(self.payload, dict):
+            return str(self.payload.get("company", "Company"))
+        return "Company"
+
+    @property
+    def job_title(self) -> str:
+        if isinstance(self.payload, dict) and isinstance(self.payload.get("job"), dict):
+            return str(self.payload["job"].get("title", "Job"))
+        return "Job"
+
+    @property
+    def match_score(self) -> int:
+        if isinstance(self.payload, dict) and isinstance(self.payload.get("profiles"), list):
+            profiles = self.payload["profiles"]
+            if profiles and isinstance(profiles[0], dict):
+                return max(int(p.get("score", 0)) for p in profiles if isinstance(p, dict))
+        return 0
+
+    @property
+    def matching_profiles(self) -> list[str]:
+        if isinstance(self.payload, dict) and isinstance(self.payload.get("profiles"), list):
+            return [
+                str(p.get("name", ""))
+                for p in self.payload["profiles"]
+                if isinstance(p, dict) and p.get("name")
+            ]
+        return []
+
+    @property
+    def apply_url(self) -> str | None:
+        if isinstance(self.payload, dict) and isinstance(self.payload.get("job"), dict):
+            return self.payload["job"].get("application_url")
+        return None
+
+    @property
+    def delivery_status(self) -> str:
+        return self.status

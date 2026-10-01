@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import uuid
 from dataclasses import dataclass
 from typing import Any
 
@@ -41,8 +42,9 @@ class NotificationMetrics:
         }
 
 
-def get_notification_metrics(db: Session) -> NotificationMetrics:
+def get_notification_metrics(db: Session, user_id: uuid.UUID | None = None) -> NotificationMetrics:
     """Compute aggregate observability metrics for the notification outbox."""
+    scope = [Notification.user_id == user_id] if user_id else []
     row = db.execute(
         select(
             func.count().label("total"),
@@ -62,7 +64,7 @@ def get_notification_metrics(db: Session) -> NotificationMetrics:
                 func.sum(case((Notification.status == "permanently_failed", 1), else_=0)), 0
             ).label("permanently_failed"),
             func.coalesce(func.avg(cast(Notification.attempts, Float)), 0.0).label("avg_attempts"),
-        )
+        ).where(*scope)
     ).one()
 
     # Latency: difference between sent_at and created_at in seconds
@@ -76,12 +78,12 @@ def get_notification_metrics(db: Session) -> NotificationMetrics:
                 func.extract("epoch", Notification.sent_at)
                 - func.extract("epoch", Notification.created_at)
             ).label("max_latency"),
-        ).where(Notification.status == "sent", Notification.sent_at.is_not(None))
+        ).where(*scope, Notification.status == "sent", Notification.sent_at.is_not(None))
     ).one()
 
     last_err = db.scalar(
         select(Notification.last_error)
-        .where(Notification.last_error.is_not(None))
+        .where(*scope, Notification.last_error.is_not(None))
         .order_by(Notification.updated_at.desc())
         .limit(1)
     )

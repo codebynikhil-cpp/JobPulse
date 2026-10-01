@@ -333,6 +333,7 @@ def test_schema_inventory_and_indexes(migrated_database):
         "job_monitor_state",
         "job_matches",
         "notifications",
+        "user_job_interactions",
     }
     indexes = {tuple(item["column_names"]) for item in inspector.get_indexes("jobs")}
     assert {

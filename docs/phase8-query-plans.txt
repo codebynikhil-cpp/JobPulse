@@ -1,0 +1,38 @@
+SELECT id FROM notifications WHERE user_id = :uid ORDER BY created_at DESC, id DESC LIMIT 20
+Limit  (cost=0.14..8.16 rows=1 width=24) (actual time=0.024..0.026 rows=1 loops=1)
+  Buffers: shared hit=2
+  ->  Index Only Scan Backward using ix_notifications_user_created on notifications  (cost=0.14..8.16 rows=1 width=24) (actual time=0.023..0.024 rows=1 loops=1)
+        Index Cond: (user_id = '1ebd2f6e-8ec6-4589-bcb6-5f11aac713b7'::uuid)
+        Heap Fetches: 1
+        Buffers: shared hit=2
+Planning:
+  Buffers: shared hit=158
+Planning Time: 0.288 ms
+Execution Time: 0.037 ms
+
+SELECT j.id FROM jobs j WHERE j.id IN (SELECT m.job_id FROM job_matches m JOIN profiles p ON p.id = m.profile_id WHERE p.user_id = :uid AND p.active AND m.matched AND m.status = 'evaluated') AND j.status = 'open' ORDER BY coalesce(j.posted_at, j.first_seen_at) DESC, j.id DESC LIMIT 20
+Limit  (cost=19.57..19.57 rows=1 width=24) (actual time=0.133..0.134 rows=1 loops=1)
+  Buffers: shared hit=10
+  ->  Sort  (cost=19.57..19.57 rows=1 width=24) (actual time=0.132..0.133 rows=1 loops=1)
+        Sort Key: (COALESCE(j.posted_at, j.first_seen_at)) DESC, j.id DESC
+        Sort Method: quicksort  Memory: 25kB
+        Buffers: shared hit=10
+        ->  Nested Loop Semi Join  (cost=0.14..19.56 rows=1 width=24) (actual time=0.100..0.101 rows=1 loops=1)
+              Join Filter: (j.id = m.job_id)
+              Buffers: shared hit=4
+              ->  Seq Scan on jobs j  (cost=0.00..10.38 rows=1 width=32) (actual time=0.016..0.017 rows=1 loops=1)
+                    Filter: ((status)::text = 'open'::text)
+                    Buffers: shared hit=1
+              ->  Nested Loop  (cost=0.14..9.17 rows=1 width=16) (actual time=0.081..0.082 rows=1 loops=1)
+                    Buffers: shared hit=3
+                    ->  Seq Scan on profiles p  (cost=0.00..1.00 rows=1 width=16) (actual time=0.003..0.003 rows=1 loops=1)
+                          Filter: (active AND (user_id = '1ebd2f6e-8ec6-4589-bcb6-5f11aac713b7'::uuid))
+                          Buffers: shared hit=1
+                    ->  Index Scan using job_matches_pkey on job_matches m  (cost=0.14..8.16 rows=1 width=32) (actual time=0.077..0.077 rows=1 loops=1)
+                          Index Cond: (profile_id = p.id)
+                          Filter: (matched AND ((status)::text = 'evaluated'::text))
+                          Buffers: shared hit=2
+Planning:
+  Buffers: shared hit=257
+Planning Time: 0.572 ms
+Execution Time: 0.161 ms

@@ -388,3 +388,12 @@ no additional production company adapters are implemented. Migration 0006 stores
 official URL/acquisition/adapter metadata independently of the six source types.
 Scheduled sources must be selected by an active profile. Completed Phases 1-5 remain
 compatible and are preserved. See company-career-sources.md for the full contract.
+
+
+### Phase 8 approved refinement
+
+This is a personal user-facing product: no admin role or separate admin dashboard.
+Source health is available only for companies monitored by an active owned
+profile. Canonical jobs stay shared; interactions and notification read state
+are owner-specific and distinct from delivery status. See architecture.md for
+feed pagination, ownership and source-health semantics.
