@@ -262,3 +262,4 @@ pg_restore -d "postgresql://roleradar:PASSWORD@HOST.oregon-postgres.render.com/r
 | **Total Estimated Cost** | — | **Not recommended** (worker requires paid tier; DB expires) | **Production Deployment** | **~$21.00 / month** |
 
 > **DevOps Recommendation:** For an always-on, resume-worthy production deployment, the **$21/month** Render Starter plan (1 Web + 1 Worker + 1 Database) combined with the **Free Vercel Hobby** plan provides zero cold starts, continuous background job monitoring, and persistent PostgreSQL storage.
+
