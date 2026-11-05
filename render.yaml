@@ -10,10 +10,15 @@ services:
     plan: starter
     healthCheckPath: /api/health
     envVars:
+      # Set DATABASE_URL manually in the Render dashboard.
+      # For Supabase: postgresql+psycopg://postgres.[PROJECT-REF]:[PASSWORD]@aws-0-ap-south-1.pooler.supabase.com:5432/postgres
+      # For Render managed Postgres: uncomment the fromDatabase block below and remove the sync: false line.
       - key: DATABASE_URL
-        fromDatabase:
-          name: roleradar-postgres
-          property: connectionString
+        sync: false
+      # - key: DATABASE_URL
+      #   fromDatabase:
+      #     name: roleradar-postgres
+      #     property: connectionString
       - key: APP_ORIGIN
         sync: false
       - key: COOKIE_SECURE
@@ -39,10 +44,13 @@ services:
     dockerCommand: python -m app.worker
     plan: starter
     envVars:
+      # Same DATABASE_URL as backend — set manually in the Render dashboard.
       - key: DATABASE_URL
-        fromDatabase:
-          name: roleradar-postgres
-          property: connectionString
+        sync: false
+      # - key: DATABASE_URL
+      #   fromDatabase:
+      #     name: roleradar-postgres
+      #     property: connectionString
       - key: EMAIL_PROVIDER
         # Set to "resend" and configure RESEND_API_KEY + EMAIL_FROM once you have Resend credentials.
         value: "disabled"
@@ -51,12 +59,11 @@ services:
       - key: EMAIL_FROM
         sync: false
 
-databases:
-  # ----------------------------------------------------------------------------
-  # Managed PostgreSQL 17 Database
-  # ----------------------------------------------------------------------------
-  - name: roleradar-postgres
-    plan: starter
-    databaseName: roleradar
-    user: roleradar
-    postgresMajorVersion: 17
+# databases:
+#   # Uncomment to use Render's managed PostgreSQL instead of an external DB (e.g. Supabase).
+#   # Also uncomment the fromDatabase blocks in the services above and remove the sync: false lines.
+#   - name: roleradar-postgres
+#     plan: starter
+#     databaseName: roleradar
+#     user: roleradar
+#     postgresMajorVersion: 17
