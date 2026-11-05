@@ -173,7 +173,7 @@ def test_disabled_email_provider():
     msg = EmailMessage(recipient="user@example.com", subject="Hi", body="Text")
     res = disabled.send(msg)
     assert res.provider_id == "disabled-sink"
-    assert res.status == "sent"
+    assert res.status == "cancelled"
 
 
 def test_resend_email_provider_success():

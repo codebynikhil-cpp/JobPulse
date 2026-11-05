@@ -896,3 +896,110 @@ def test_health_states_and_catalog_privacy(factory, failures, state, active, exp
         assert item["source_health"] is None and item["last_checked_at"] is None
         make_profile_for_user(factory, uid, cid)
         assert c.get(f"/api/sources/{sid}/health").json()["health_status"] == expected
+
+
+@pytest.mark.parametrize(
+    "source_type,method,key",
+    [
+        ("workday", "http", None),
+        ("lever", "browser", None),
+        ("greenhouse", "browser", None),
+        ("greenhouse", "http", "unknown"),
+    ],
+)
+def test_unimplemented_capability_is_unsupported_before_first_run(
+    factory, source_type, method, key
+):
+    client, email = make_authed_client()
+    with factory() as db:
+        owner = db.scalar(select(User.id).where(User.email == email))
+    cid, sid = make_company_and_source(factory)
+    make_profile_for_user(factory, owner, cid)
+    with factory.begin() as db:
+        source = db.get(JobSource, sid)
+        source.source_type = source_type
+        source.acquisition_method = method
+        source.adapter_key = key
+        source.career_url = "https://example.com/careers"
+    with client:
+        row = next(
+            c for c in client.get("/api/subscriptions").json() if c["company_id"] == str(cid)
+        )
+        assert row["source_health"] == "unsupported"
+        assert row["last_checked_at"] is None
+        assert client.get(f"/api/sources/{sid}/health").json()["health_status"] == "unsupported"
+
+
+def test_profile_edits_hide_stale_matches_and_unchanged_run_reevaluates(factory):
+    client, email = make_authed_client()
+    with factory() as db:
+        owner = db.scalar(select(User.id).where(User.email == email))
+    cid, sid = make_company_and_source(factory)
+    pid = make_profile_for_user(factory, owner, cid)
+    jobs = [raw_job()]
+    run_monitoring(factory, sid, jobs)
+    with client:
+        jid = client.get("/api/jobs").json()["items"][0]["id"]
+        assert client.patch(f"/api/jobs/{jid}/status", json={"status": "saved"}).status_code == 200
+        changed = client.patch(
+            f"/api/profiles/{pid}",
+            json={"skills": [{"name": "Rust", "kind": "required"}]},
+        )
+        assert changed.status_code == 200
+        assert client.get("/api/jobs").json()["total"] == 0
+        assert client.get("/api/jobs?user_status=saved").json()["total"] == 0
+        assert client.get(f"/api/jobs/{jid}").status_code == 404
+        assert client.get(f"/api/jobs/{jid}/status").status_code == 404
+        assert (
+            client.patch(f"/api/jobs/{jid}/status", json={"status": "applied"}).status_code == 404
+        )
+        assert client.get("/api/dashboard").json()["stats"]["new_jobs_count"] == 0
+        row = next(
+            c for c in client.get("/api/subscriptions").json() if c["company_id"] == str(cid)
+        )
+        assert row["recent_matches_count"] == 0
+        result = asyncio.run(run_source(factory, sid, adapter=FakeSource([jobs])))
+        assert result.unchanged_count == result.evaluated_count == 1
+        assert result.matched_count == 0
+        assert client.get("/api/jobs").json()["total"] == 0
+        assert (
+            client.patch(
+                f"/api/profiles/{pid}",
+                json={"skills": [{"name": "Python", "kind": "required"}]},
+            ).status_code
+            == 200
+        )
+        result = asyncio.run(run_source(factory, sid, adapter=FakeSource([jobs])))
+        assert result.created_count == 0 and result.evaluated_count == 1
+        assert client.get("/api/jobs?user_status=saved").json()["total"] == 1
+        assert len(client.get("/api/notifications").json()) == 1
+
+
+def test_new_subscription_evaluates_existing_unchanged_jobs_and_unsubscribe_hides_them(
+    factory,
+):
+    client, email = make_authed_client()
+    with factory() as db:
+        owner = db.scalar(select(User.id).where(User.email == email))
+    cid, sid = make_company_and_source(factory)
+    # Diagnostic ingestion before this user has subscribed.
+    jobs = [raw_job()]
+    run_monitoring(factory, sid, jobs)
+    pid = make_profile_for_user(factory, owner, cid)
+    result = asyncio.run(run_source(factory, sid, adapter=FakeSource([jobs])))
+    assert result.unchanged_count == result.evaluated_count == result.matched_count == 1
+    with client:
+        jid = client.get("/api/jobs").json()["items"][0]["id"]
+        assert (
+            client.post(
+                "/api/subscriptions/toggle",
+                json={
+                    "company_id": str(cid),
+                    "subscribed": False,
+                    "profile_id": str(pid),
+                },
+            ).status_code
+            == 200
+        )
+        assert client.get("/api/jobs").json()["total"] == 0
+        assert client.get(f"/api/jobs/{jid}").status_code == 404

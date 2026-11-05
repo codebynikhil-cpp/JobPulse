@@ -59,8 +59,10 @@ insertion; the CLI is trusted developer/admin tooling, not an authenticated API.
 No new HTTP endpoints, company picker or user-facing UI. Profile deletion cascades
 subscriptions/matches. `list_current_matches` filters by owner, active profile,
 current subscription, open job, current content hash and profile update time.
-Profile edits are not an automatic historical-job backfill; stale positive states
-are hidden until those jobs are evaluated again.
+Profile edits hide stale positive states immediately. On the next successful
+source observation, unchanged open jobs are queued when an active subscribed
+profile is new or has changed since its evaluation. Jobs absent from that
+observation are not automatically backfilled.
 
 ## Transactions, recovery and idempotency
 
@@ -82,8 +84,10 @@ calling it; no matching rules are copied into the worker.
 New jobs and any Phase 4 content-hash changes enqueue evaluation. The hash covers
 title, description, location, employment, experience text and application URL;
 raw metadata/publication-only updates do not enqueue. Reopened jobs count as updated.
-Unchanged jobs are skipped, except previously queued recoverable work. Existing
-historical jobs are not retroactively queued when monitoring is first introduced.
+Unchanged jobs are skipped unless recoverable work is pending or an active
+subscription has no evaluation/current profile evidence for a returned open job.
+New subscriptions and profile edits therefore refresh on successful acquisition
+without treating identical canonical content as a new job.
 
 JobMonitorState.pending is durable work, not a notification event. Evaluations are
 committed per job transaction. Profile errors use savepoints, so other profiles

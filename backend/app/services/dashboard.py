@@ -15,6 +15,7 @@ from app.schemas.dashboard import (
     DashboardStats,
     SourceHealthSummary,
 )
+from app.services.current_matches import current_matches
 from app.services.job_feed import get_user_job_feed
 from app.services.notifications import list_user_notifications
 from app.services.subscriptions import list_user_company_subscriptions
@@ -70,16 +71,7 @@ def get_user_dashboard(db: Session, user_id: uuid.UUID) -> DashboardResponse:
 
     # New jobs count: matched jobs for user's active profiles without an interaction record
     if user_prof_ids:
-        matched_job_ids_subquery = (
-            select(JobMatch.job_id)
-            .join(Profile, Profile.id == JobMatch.profile_id)
-            .where(
-                Profile.user_id == user_id,
-                Profile.active.is_(True),
-                JobMatch.matched.is_(True),
-                JobMatch.status == "evaluated",
-            )
-        )
+        matched_job_ids_subquery = current_matches(user_id).with_only_columns(JobMatch.job_id)
         new_jobs_count = (
             db.scalar(
                 select(func.count(distinct(Job.id)))

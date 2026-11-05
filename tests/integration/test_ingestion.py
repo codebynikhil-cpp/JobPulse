@@ -232,13 +232,13 @@ def test_retry_guidance_budget():
         GreenhouseAdapter._retry_delay("60", 0)
 
 
-def test_only_greenhouse_available_other_types_remain_valid():
-    assert AVAILABLE_ADAPTERS == {SourceType.GREENHOUSE}
+def test_available_adapters_registered_other_types_remain_valid():
+    assert AVAILABLE_ADAPTERS == {SourceType.GREENHOUSE, SourceType.LEVER, SourceType.ASHBY}
 
     async def scenario():
         async with httpx.AsyncClient() as client:
             for kind in SourceType:
-                if kind != SourceType.GREENHOUSE:
+                if kind not in AVAILABLE_ADAPTERS:
                     with pytest.raises(SourceError, match="No adapter"):
                         build_adapter(kind, {}, client)
 

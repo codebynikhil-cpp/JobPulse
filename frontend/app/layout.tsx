@@ -1,4 +1,6 @@
 import "./globals.css";
+import { Outfit } from "next/font/google";
+const outfit = Outfit({ subsets: ["latin"], weight: ["400", "500", "700", "900"], variable: "--font-outfit", display: "swap" });
 import type { Metadata } from "next";
 export const metadata: Metadata = {
   title: "JobPulse - Your search, in focus",
@@ -12,7 +14,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body className={outfit.variable}>{children}</body>
     </html>
   );
 }

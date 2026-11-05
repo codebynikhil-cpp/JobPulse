@@ -22,6 +22,7 @@ from app.notifications.outbox import (
     previous_relevant_users,
 )
 from app.notifications.provider import (
+    DisabledEmailProvider,
     MockEmailProvider,
 )
 from app.notifications.worker import (
@@ -785,3 +786,22 @@ def test_notifications_api_endpoints(client, factory):
     metrics_data = metrics_resp.json()
     assert metrics_data["total_count"] >= 1
     assert metrics_data["pending_count"] >= 1
+
+
+def test_disabled_delivery_is_cancelled_not_sent_after_real_worker_claim(factory):
+    cid, sid = setup_source_and_company(factory)
+    create_user_profile(factory, cid)
+    asyncio.run(run_source(factory, sid, adapter=FakeSource([[make_raw_job()]])))
+    worker = NotificationWorker(factory, provider=DisabledEmailProvider())
+    summary = worker.run_once()
+    assert summary.claimed == summary.cancelled == 1
+    assert summary.sent == summary.retried == summary.permanently_failed == 0
+    with factory() as db:
+        record = db.scalar(select(Notification))
+        assert record.status == "cancelled"
+        assert record.sent_at is None
+        assert record.read_at is None
+        assert record.claim_token is None and record.lease_until is None
+        assert record.attempts == 1
+        assert get_notification_metrics(db).sent_count == 0
+    assert worker.run_once().claimed == 0

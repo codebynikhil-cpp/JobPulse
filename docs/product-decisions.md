@@ -305,9 +305,8 @@ truncating stored errors.
   Radix Dialog/Dropdown and Lucide React; no full template or additional state,
   form, table or animation framework. This follows the approved reusable approach
   without adding the shadcn CLI/runtime when direct primitives suffice.
-- Use a restrained light neutral theme, indigo accent, semantic status colors,
-  6px controls, 8px surfaces and minimal shadows. Lists and divided sections replace
-  a wall of cards. Maintain responsive sidebar/sheet navigation and reduced motion.
+- The original neutral/indigo theme is superseded by the full-app Bauhaus
+  redesign below. Maintain responsive sidebar/sheet navigation and reduced motion.
 - Preserve backend API contracts. Alternate score/company sorting is labelled
   current-page ordering; true global ordering needs a separate API extension.
 - Profile notification settings remain deferred: the spec describes preferences
@@ -321,3 +320,48 @@ truncating stored errors.
   Monitoring checks are not fabricated for never-checked sources.
 - Browser fixtures use isolated test users, FakeSource and persisted jobs; records
   are removed at the end. No fixture data is introduced into production UI code.
+
+
+## Bauhaus design system
+
+- Apply the user-selected Bauhaus style across the public landing, authentication,
+  and all authenticated routes. Preserve API contracts, ownership, filters,
+  actions, and truthful monitoring states. No new backend features.
+- Centralize primary red/blue/yellow, black borders, off-white canvas, binary
+  square/circle shapes and hard shadow tokens in globals.css. Reuse existing
+  domain selectors and primitives, with one shared presentation layer.
+- Load Outfit (400/500/700/900) through next/font for self-hosted font output and
+  use responsive uppercase display typography. Keep dense job metadata compact.
+- Share BrandMark and GeometricComposition as code-native decorative geometry;
+  do not introduce raster imagery or an additional component framework.
+- Landing content describes existing capabilities only. No invented statistics,
+  pricing, testimonials, blog content, or unsupported integrations. Native FAQ
+  disclosure elements preserve keyboard interaction without additional JS.
+- Map healthy/active/open states to blue, degraded to yellow, and failures to red;
+  every badge retains its explicit text so color is not the only state cue.
+- Retain keyboard focus, Radix dialog behavior, skip links and reduced-motion
+  support. Mobile borders/shadows scale down and the landing stacks vertically.
+
+
+## End-to-end QA corrections (2026-10-04)
+
+- Public feed/detail/interaction authorization, dashboard new-job counts and
+  company match counts share current_matches: owned active profile, existing
+  subscription, positive evaluated match, current content hash, and evaluation
+  no older than the saved profile. Saved/applied may include closed jobs, while
+  stale or unsubscribed evidence cannot authorize new actions. Stored interaction
+  history and its dashboard state counts remain intact.
+- Successful observations queue returned unchanged open jobs for newly subscribed
+  or edited/reactivated profiles. The evaluation cache also requires a current
+  profile timestamp. No fetch is triggered by a profile edit and no absent-job
+  historical backfill is introduced. Existing notification material-hash
+  deduplication prevents unchanged-job alerts to already-notified users.
+- Source health consults the production adapter registry before reporting health;
+  valid stored platform classifications do not imply implemented acquisition.
+- Wrap long account email addresses on mobile instead of clipping their content.
+- Disabled email delivery is cancelled, never sent; the worker preserves an empty
+  sent timestamp and reports cancellations separately. Provider results must use
+  a supported terminal delivery status.
+- Running-stack QA uses fixture-owned records and real local Chromium/HTTP
+  acquisition. Mock email delivery is scoped to fixture notifications; global
+  worker claiming/concurrency runs only in disposable PostgreSQL test databases.

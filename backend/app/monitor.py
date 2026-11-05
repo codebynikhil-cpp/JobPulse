@@ -24,6 +24,7 @@ class StructuredFormatter(logging.Formatter):
         for key in (
             "source_id",
             "company_id",
+            "company_name",
             "adapter_key",
             "acquisition_method",
             "job_id",
@@ -32,6 +33,11 @@ class StructuredFormatter(logging.Formatter):
             "status",
             "error_type",
             "matched_count",
+            "created_count",
+            "updated_count",
+            "unchanged_count",
+            "failed_count",
+            "duration_seconds",
             "result",
         ):
             if hasattr(record, key):
@@ -64,8 +70,21 @@ def main():
         pause_after_failures=settings.monitor_pause_after_failures,
     )
     if args.command == "worker":
+
+        async def _run():
+            stop = asyncio.Event()
+            loop = asyncio.get_running_loop()
+            import signal
+
+            for sig in (signal.SIGINT, signal.SIGTERM):
+                try:
+                    loop.add_signal_handler(sig, stop.set)
+                except (NotImplementedError, AttributeError):
+                    signal.signal(sig, lambda s, f: stop.set())
+            await worker(SessionLocal, config, stop=stop)
+
         try:
-            asyncio.run(worker(SessionLocal, config))
+            asyncio.run(_run())
         except KeyboardInterrupt:
             pass
         return

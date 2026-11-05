@@ -1,8 +1,8 @@
 "use client";
+import { BrandMark } from "@/components/ui/geometry";
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Activity } from "lucide-react";
 import { request } from "@/lib/client-api";
 import { Button } from "@/components/ui/primitives";
 import { ErrorState } from "@/components/ui/feedback";
@@ -33,7 +33,7 @@ export default function AuthForm({ mode }: { mode: "login" | "signup" }) {
   return (
     <main className="auth-page">
       <Link prefetch={false} href="/" className="brand">
-        <Activity size={26} />
+        <BrandMark />
         JobPulse<span className="brand-dot">.</span>
       </Link>
       <section className="auth-panel">

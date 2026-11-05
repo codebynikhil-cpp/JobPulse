@@ -32,6 +32,7 @@ class BatchSummary:
     retried: int = 0
     permanently_failed: int = 0
     lost_lease: int = 0
+    cancelled: int = 0
     errors: list[str] = field(default_factory=list)
 
 
@@ -159,16 +160,18 @@ def deliver_claimed_notification(
 
     try:
         result: DeliveryResult = provider.send(message)
+        if result.status not in {"sent", "cancelled"}:
+            raise PermanentDeliveryError("Provider returned an invalid delivery status")
         with factory.begin() as db:
             record = db.get(Notification, notification_id)
             if record and record.claim_token == claim_token:
-                record.status = "sent"
-                record.sent_at = datetime.now(UTC)
+                record.status = result.status
+                record.sent_at = datetime.now(UTC) if result.status == "sent" else None
                 record.provider_id = result.provider_id
                 record.claim_token = None
                 record.lease_until = None
                 record.last_error = None
-        return "sent", None
+        return result.status, None
     except RetryableDeliveryError as exc:
         error_msg = str(exc)[:500]
         with factory.begin() as db:
@@ -242,7 +245,7 @@ class NotificationWorker:
         if not claimed_ids:
             return BatchSummary(claimed=0)
 
-        sent = retried = permanently_failed = lost_lease = 0
+        sent = retried = permanently_failed = lost_lease = cancelled = 0
         errors: list[str] = []
 
         for notif_id in claimed_ids:
@@ -261,6 +264,8 @@ class NotificationWorker:
                     errors.append(err)
             elif status == "lost_lease":
                 lost_lease += 1
+            elif status == "cancelled":
+                cancelled += 1
 
         return BatchSummary(
             claimed=len(claimed_ids),
@@ -268,12 +273,13 @@ class NotificationWorker:
             retried=retried,
             permanently_failed=permanently_failed,
             lost_lease=lost_lease,
+            cancelled=cancelled,
             errors=errors,
         )
 
     def run_once(self) -> BatchSummary:
         """Process all currently due notifications until the queue is drained."""
-        total_claimed = total_sent = total_retried = total_failed = total_lost = 0
+        total_claimed = total_sent = total_retried = total_failed = total_lost = total_cancelled = 0
         all_errors: list[str] = []
 
         while True:
@@ -285,6 +291,7 @@ class NotificationWorker:
             total_retried += batch.retried
             total_failed += batch.permanently_failed
             total_lost += batch.lost_lease
+            total_cancelled += batch.cancelled
             all_errors.extend(batch.errors)
 
         return BatchSummary(
@@ -293,6 +300,7 @@ class NotificationWorker:
             retried=total_retried,
             permanently_failed=total_failed,
             lost_lease=total_lost,
+            cancelled=total_cancelled,
             errors=all_errors,
         )
 

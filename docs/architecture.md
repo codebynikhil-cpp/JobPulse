@@ -330,3 +330,96 @@ Authenticated data links disable speculative prefetch, avoiding unnecessary
 owner-scoped queries. Query-only pagination, filter reset and notification tabs
 use document navigation, consistent with GET filter forms; this prevents stale
 query views after form submission/reload in the current Next.js runtime.
+
+
+### Bauhaus presentation layer
+
+The full app uses shared Bauhaus tokens in `app/globals.css` and Outfit loaded in
+`app/layout.tsx` with next/font. `components/ui/geometry.tsx` owns the decorative
+three-shape brand and abstract composition, shared across public/auth/workspace
+branding. The landing page composes product steps, benefits and native FAQ
+disclosures; it does not fetch or fabricate product data. Existing domain
+components inherit the updated presentation without changing their server reads,
+client mutations, API contracts or authorization boundaries.
+
+
+### Functional QA corrections
+
+`services/current_matches.py` centralizes public match visibility for feed/detail,
+interaction authorization, dashboard opportunity counts and company match counts.
+It checks current job/profile evidence and subscription ownership before pagination
+or actions. Observation processing queues returned unchanged open jobs for new or
+updated active subscriptions; cache reuse also requires a current profile timestamp.
+Source-health projection resolves actual production registry capability. These
+corrections add no schema, matching weights or production adapters.
+
+The disabled email provider returns cancelled. The notification worker persists
+that terminal state without a sent timestamp, counts cancellations separately,
+and rejects unsupported provider result statuses.
+
+`scripts/qa_e2e.py` verifies the running Compose stack with scoped fixtures, Chromium
+forms and real local HTTP/JavaScript acquisition. Its container-local TCP forwarder
+preserves the browser localhost origin; UI API responses are not intercepted.
+`docs/functional-qa.md` records evidence, commands and remaining deployment limits.
+
+
+## Phase 9 — Multi-company career integrations (Lever & Ashby)
+
+The career adapter architecture is built on the `JobSourceAdapter` abstract protocol and resolved through `AdapterRegistry`. In Phase 9, production-ready adapters for Lever and Ashby join Greenhouse:
+
+1. **Lever Adapter (`app/sources/lever.py`):**
+   - Targets the official public postings endpoint: `GET https://api.lever.co/v0/postings/{site}?mode=json`.
+   - Enforces DNS SSRF verification (`verify_public_host`) restricting resolution to global public IPs.
+   - Normalizes raw commitment strings into canonical schema values (`full_time`, `part_time`, `contract`, `internship`, `temporary`).
+   - Reconstructs multi-part job descriptions from body, categorized lists, and additional markdown/HTML.
+   - Parses millisecond timestamps into UTC datetimes.
+   - Enforces a 20 MB response size cap and exponential backoff retry for transient 429/5xx errors.
+
+2. **Ashby Adapter (`app/sources/ashby.py`):**
+   - Targets the official public board endpoint: `GET https://api.ashbyhq.com/posting-api/job-board/{board_name}`.
+   - Enforces DNS SSRF verification against non-public addresses.
+   - Skips unlisted postings (`isListed is False`).
+   - Normalizes employment types and extracts primary/secondary locations with fallback to Remote.
+   - Parses ISO-8601 published timestamps.
+   - Handles rate limits and response caps identically to Greenhouse and Lever.
+
+3. **Registry Compatibility:**
+   `AVAILABLE_ADAPTERS` in `app/sources/registry.py` explicitly registers `SourceType.GREENHOUSE`, `SourceType.LEVER`, and `SourceType.ASHBY`. Non-registered catalog types (`workday`, `custom`, `api`) remain valid database classifications but raise explicit `SourceError` on attempted acquisition.
+
+
+## Phase 10 — Reliable background worker & scheduler
+
+1. **Unified Background Worker (`app/worker.py`):**
+   - Concurrently executes the monitoring scheduler loop and the notification outbox delivery loop in a single supervised process via `asyncio.gather`.
+   - Attaches signal handlers for `SIGINT` and `SIGTERM` across Unix and Windows environments, setting a cooperative `stop_event` that allows in-flight HTTP requests and database transactions to commit cleanly before exit.
+   - Employs fault isolation: an exception querying or executing one source never crashes the worker or blocks other due sources.
+   - Recovers automatically from transient PostgreSQL disconnections.
+
+2. **Structured Logging:**
+   - Both `app.monitor` and `app.monitoring.runner` emit structured JSON log records with `source_id`, `company_name`, `adapter_key`, `acquisition_method`, `created_count`, `updated_count`, `unchanged_count`, `failed_count`, `duration_seconds`, and full tracebacks on failures.
+
+
+## Phase 11 — Notification delivery & Resend verification
+
+- **Transactional Outbox Claiming:** Uses PostgreSQL row-level locks via `SELECT ... FOR UPDATE SKIP LOCKED` to prevent duplicate deliveries across worker replicas.
+- **Orphaned Lease Recovery:** If a worker crashes mid-delivery, the notification's lease expires (`lease_until <= now`), allowing subsequent worker iterations to reclaim and re-drive delivery.
+- **Resend Verification Script (`scripts/verify_resend.py`):** Provides a production validation tool for testing live email delivery via the Resend API when credentials are provided, or skipping gracefully with actionable configuration instructions when omitted.
+
+
+## Phase 15 — End-to-end acceptance testing
+
+A 14-step automated acceptance test (`tests/integration/test_e2e_acceptance.py`) validates the complete user journey:
+1. User registration (`POST /api/auth/signup`)
+2. Session establishment (`GET /api/auth/me`)
+3. Target profile configuration (`POST /api/profiles`)
+4. Company subscription management across Lever and Ashby (`POST /api/subscriptions/toggle`)
+5. Monitoring execution with isolated mock adapters (`run_source`)
+6. Ingestion through Lever and Ashby adapters
+7. Ingestion deduplication on repeated runs
+8. Deterministic profile matching
+9. Match score and evidence recording (`JobFeedItem.best_score`)
+10. Notification generation for relevant opportunities
+11. Delivery processing via `NotificationWorker`
+12. Delivery state transitions (`pending` -> `sent`)
+13. User job interactions (`saved`, `applied`, `ignored` via `POST /api/jobs/{id}/status`)
+14. Real-time company health verification (`GET /api/subscriptions`, `GET /api/sources/{id}/health`)

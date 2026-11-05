@@ -4,11 +4,13 @@ from dataclasses import dataclass
 import httpx
 
 from app.core.catalog import SourceType
+from app.sources.ashby import AshbyAdapter
 from app.sources.base import JobSourceAdapter, SourceError
 from app.sources.greenhouse import GreenhouseAdapter
+from app.sources.lever import LeverAdapter
 
 # Compatibility inventory: platform classification alone is never a capability check.
-AVAILABLE_ADAPTERS = frozenset({SourceType.GREENHOUSE})
+AVAILABLE_ADAPTERS = frozenset({SourceType.GREENHOUSE, SourceType.LEVER, SourceType.ASHBY})
 
 
 @dataclass(frozen=True)
@@ -55,6 +57,18 @@ DEFAULT_REGISTRY = AdapterRegistry(
             SourceType.GREENHOUSE,
             "http",
             lambda config, client, career_url: GreenhouseAdapter(config, client),
+        ),
+        AdapterRegistration(
+            "lever",
+            SourceType.LEVER,
+            "http",
+            lambda config, client, career_url: LeverAdapter(config, client),
+        ),
+        AdapterRegistration(
+            "ashby",
+            SourceType.ASHBY,
+            "http",
+            lambda config, client, career_url: AshbyAdapter(config, client),
         ),
     )
 )

@@ -10,9 +10,11 @@ from sqlalchemy.orm import Session
 
 from app.models.catalog import Company, JobSource
 from app.models.job import Job
-from app.models.monitoring import JobMatch, ProfileCompany
+from app.models.monitoring import ProfileCompany
 from app.models.profile import Profile
 from app.schemas.subscription import SubscriptionCompanyOut
+from app.services.current_matches import current_matches
+from app.sources.registry import DEFAULT_REGISTRY
 
 
 def derive_source_health(source: JobSource | None, company: Company | None) -> str:
@@ -27,6 +29,9 @@ def derive_source_health(source: JobSource | None, company: Company | None) -> s
         or not source.active
         or (company and not company.enabled)
         or source.health_status == "unsupported"
+        or not DEFAULT_REGISTRY.supports(
+            source.source_type, source.acquisition_method, source.adapter_key
+        )
     ):
         return "unsupported"
     if source.consecutive_failures >= 3 or source.health_status == "failing":
@@ -104,14 +109,9 @@ def list_user_company_subscriptions(
     # Recent matching open jobs count per company for this user
     match_counts = dict(
         db.execute(
-            select(Job.company_id, func.count(func.distinct(Job.id)))
-            .join(JobMatch, JobMatch.job_id == Job.id)
-            .where(
-                JobMatch.profile_id.in_(user_prof_ids),
-                JobMatch.matched.is_(True),
-                JobMatch.status == "evaluated",
-                Job.status == "open",
-            )
+            current_matches(user_id)
+            .with_only_columns(Job.company_id, func.count(func.distinct(Job.id)))
+            .where(Job.status == "open")
             .group_by(Job.company_id)
         ).all()
     )

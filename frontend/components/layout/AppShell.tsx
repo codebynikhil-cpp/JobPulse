@@ -1,11 +1,11 @@
 "use client";
+import { BrandMark } from "@/components/ui/geometry";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, type ReactNode } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import * as Dropdown from "@radix-ui/react-dropdown-menu";
 import {
-  Activity,
   LayoutDashboard,
   BriefcaseBusiness,
   Bookmark,
@@ -79,7 +79,7 @@ export default function AppShell({
       <div className={`app-shell ${collapsed ? "sidebar-collapsed" : ""}`}>
         <aside className="sidebar">
           <Link prefetch={false} href="/dashboard" className="brand">
-            <Activity size={24} aria-hidden="true" />
+            <BrandMark />
             <span>
               JobPulse<span className="brand-dot">.</span>
             </span>
@@ -118,7 +118,7 @@ export default function AppShell({
                 <Dialog.Overlay className="dialog-overlay" />
                 <Dialog.Content className="mobile-sidebar">
                   <Dialog.Title className="brand">
-                    <Activity size={24} />
+                    <BrandMark />
                     JobPulse
                   </Dialog.Title>
                   <Dialog.Description className="sr-only">

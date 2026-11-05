@@ -7,13 +7,13 @@ function Items({ values }: { values: string[] }) {
   return values.length ? (
     <ul className="mt-2 flex flex-wrap gap-2">
       {values.map((value) => (
-        <li className="rounded bg-slate-100 px-3 py-1 text-sm" key={value}>
+        <li className="badge profile-badge" key={value}>
           {value}
         </li>
       ))}
     </ul>
   ) : (
-    <p className="mt-2 text-sm text-slate-500">None specified</p>
+    <p className="mt-2 text-sm text-muted">None specified</p>
   );
 }
 export default async function ProfileDetails({
@@ -41,12 +41,12 @@ export default async function ProfileDetails({
           </Link>
         }
       />
-      <p className="mb-8 whitespace-pre-wrap text-slate-600">
+      <p className="mb-8 whitespace-pre-wrap text-foreground">
         {profile.description || "No description provided."}
       </p>
       <div className="profile-detail-grid">
         <section>
-          <h2 className="text-lg font-semibold">Target roles</h2>
+          <h2 className="text-2xl font-black">Target roles</h2>
           <Items values={profile.roles.map((item) => item.name)} />
           <h3 className="mt-5 font-medium">Experience</h3>
           <p className="mt-2">
@@ -56,7 +56,7 @@ export default async function ProfileDetails({
           </p>
         </section>
         <section>
-          <h2 className="text-lg font-semibold">Skills</h2>
+          <h2 className="text-2xl font-black">Skills</h2>
           <h3 className="mt-4 font-medium">Required</h3>
           <Items
             values={profile.skills
@@ -71,7 +71,7 @@ export default async function ProfileDetails({
           />
         </section>
         <section>
-          <h2 className="text-lg font-semibold">Work preferences</h2>
+          <h2 className="text-2xl font-black">Work preferences</h2>
           <h3 className="mt-4 font-medium">Employment</h3>
           <Items
             values={
@@ -96,7 +96,7 @@ export default async function ProfileDetails({
           />
         </section>
         <section>
-          <h2 className="text-lg font-semibold">Exclusions</h2>
+          <h2 className="text-2xl font-black">Exclusions</h2>
           <h3 className="mt-4 font-medium">Keywords</h3>
           <Items
             values={profile.exclusions

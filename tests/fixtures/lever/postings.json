@@ -1,0 +1,63 @@
+[
+  {
+    "id": "e4b2d5a1-7c3a-4e89-9a1b-123456789abc",
+    "text": "Staff Software Engineer, Platform",
+    "createdAt": 1727784000000,
+    "updatedAt": 1727784000000,
+    "description": "<div><p>We are seeking a <strong>Staff Software Engineer</strong> to lead our backend architecture.</p></div>",
+    "descriptionPlain": "We are seeking a Staff Software Engineer to lead our backend architecture.",
+    "lists": [
+      {
+        "text": "Responsibilities",
+        "content": "<ul><li>Architect distributed systems</li><li>Mentor engineers</li></ul>"
+      },
+      {
+        "text": "Requirements",
+        "content": "<ul><li>10+ years backend engineering</li><li>Deep knowledge of PostgreSQL and Python</li></ul>"
+      }
+    ],
+    "additional": "<div>Competitive salary, equity, and healthcare.</div>",
+    "additionalPlain": "Competitive salary, equity, and healthcare.",
+    "hostedUrl": "https://jobs.lever.co/acme/e4b2d5a1-7c3a-4e89-9a1b-123456789abc",
+    "applyUrl": "https://jobs.lever.co/acme/e4b2d5a1-7c3a-4e89-9a1b-123456789abc/apply",
+    "categories": {
+      "commitment": "Full-time",
+      "department": "Engineering",
+      "location": "San Francisco, CA",
+      "team": "Platform",
+      "allLocations": [
+        "San Francisco, CA",
+        "Remote - US"
+      ]
+    },
+    "workplaceType": "hybrid"
+  },
+  {
+    "id": "f5c3e6b2-8d4b-4f90-0b2c-987654321fed",
+    "text": "Senior Frontend Engineer",
+    "createdAt": 1727870400000,
+    "updatedAt": 1727870400000,
+    "description": "<div><p>Join our design systems team to build responsive web apps.</p></div>",
+    "descriptionPlain": "Join our design systems team to build responsive web apps.",
+    "lists": [
+      {
+        "text": "Requirements",
+        "content": "<ul><li>5+ years React / TypeScript</li><li>Experience with Next.js and Tailwind</li></ul>"
+      }
+    ],
+    "additional": "",
+    "additionalPlain": "",
+    "hostedUrl": "https://jobs.lever.co/acme/f5c3e6b2-8d4b-4f90-0b2c-987654321fed",
+    "applyUrl": "https://jobs.lever.co/acme/f5c3e6b2-8d4b-4f90-0b2c-987654321fed/apply",
+    "categories": {
+      "commitment": "Full-time",
+      "department": "Design & Engineering",
+      "location": "New York, NY",
+      "team": "Design Systems",
+      "allLocations": [
+        "New York, NY"
+      ]
+    },
+    "workplaceType": "onsite"
+  }
+]

@@ -235,7 +235,13 @@ async def run_source(
                 )
                 logger.error(
                     "Monitoring source failed",
-                    extra={"source_id": str(source_id), "error_type": type(exc).__name__},
+                    extra={
+                        "source_id": str(source_id),
+                        "company_id": str(result.company_id),
+                        "error_type": type(exc).__name__,
+                        "error_detail": str(exc)[:500],
+                    },
+                    exc_info=True,
                 )
         result = replace(
             result, completed_at=datetime.now(UTC), duration_seconds=monotonic() - started
@@ -257,6 +263,11 @@ async def run_source(
                 "run_id": str(result.run_id),
                 "status": result.status,
                 "matched_count": result.matched_count,
+                "created_count": result.created_count,
+                "updated_count": result.updated_count,
+                "unchanged_count": result.unchanged_count,
+                "failed_count": result.failed_count,
+                "duration_seconds": round(result.duration_seconds, 3),
             },
         )
         return result

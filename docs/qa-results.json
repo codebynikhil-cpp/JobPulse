@@ -1,0 +1,54 @@
+[
+  {
+    "name": "Landing navigation, CTA and FAQ at four viewport sizes",
+    "status": "PASS"
+  },
+  {
+    "name": "Every protected screen and major API rejects anonymous access",
+    "status": "PASS"
+  },
+  {
+    "name": "Browser signup/login/logout, persistence, validation, revocation, rate limit and Origin",
+    "status": "PASS"
+  },
+  {
+    "name": "Full profile form, persistence/edit, validation and cross-user isolation",
+    "status": "PASS"
+  },
+  {
+    "name": "Acquisition -> normalization -> canonical jobs -> matcher/outbox -> 1 card for 2 profiles",
+    "status": "PASS"
+  },
+  {
+    "name": "Profile edits invalidate old evidence and reevaluate unchanged jobs",
+    "status": "PASS"
+  },
+  {
+    "name": "Unsupported source capability is shown honestly before any run",
+    "status": "PASS"
+  },
+  {
+    "name": "Long account email fits mobile viewport",
+    "status": "PASS"
+  },
+  {
+    "name": "Failure/malformed atomicity, changed/duplicate jobs, closure and reopening",
+    "status": "PASS"
+  },
+  {
+    "name": "Real local HTTP and JavaScript browser acquisition through scheduler and feed",
+    "status": "PASS"
+  },
+  {
+    "name": "Owned notifications and delivery retry preserve independent read-state",
+    "status": "PASS"
+  },
+  {
+    "name": "Profile deletion confirmation/cancel and persisted removal",
+    "status": "PASS"
+  },
+  {
+    "name": "No unhandled browser JavaScript errors",
+    "status": "PASS"
+  }
+]

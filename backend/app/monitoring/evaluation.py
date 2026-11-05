@@ -126,6 +126,7 @@ def evaluate_pending(
                                 if (
                                     existing
                                     and existing.status == "evaluated"
+                                    and existing.updated_at >= profile.updated_at
                                     and (
                                         existing.content_hash,
                                         existing.profile_hash,

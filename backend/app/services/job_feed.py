@@ -15,6 +15,7 @@ from app.models.job_interaction import UserJobInteraction
 from app.models.monitoring import JobMatch
 from app.models.profile import Profile
 from app.schemas.job_feed import JobFeedItem, JobFeedResponse, MatchedProfileInfo
+from app.services.current_matches import current_matches
 
 
 def extract_match_reasons(evidence: dict[str, Any] | None) -> list[str]:
@@ -75,17 +76,7 @@ def get_user_job_feed(
 
     Multiple matching profiles for the same job are aggregated into a single item.
     """
-    # Base match query ensuring profile belongs to user, is active, and matched
-    base_match = (
-        select(JobMatch.job_id)
-        .join(Profile, Profile.id == JobMatch.profile_id)
-        .where(
-            Profile.user_id == user_id,
-            Profile.active.is_(True),
-            JobMatch.matched.is_(True),
-            JobMatch.status == "evaluated",
-        )
-    )
+    base_match = current_matches(user_id).with_only_columns(JobMatch.job_id)
 
     if profile_id:
         base_match = base_match.where(Profile.id == profile_id)
@@ -167,15 +158,9 @@ def get_user_job_feed(
 
     # Fetch all matching profile details for these jobs in a single query
     match_query = (
-        select(JobMatch, Profile.name.label("profile_name"))
-        .join(Profile, Profile.id == JobMatch.profile_id)
-        .where(
-            JobMatch.job_id.in_(job_ids),
-            Profile.user_id == user_id,
-            Profile.active.is_(True),
-            JobMatch.matched.is_(True),
-            JobMatch.status == "evaluated",
-        )
+        current_matches(user_id)
+        .with_only_columns(JobMatch, Profile.name.label("profile_name"))
+        .where(JobMatch.job_id.in_(job_ids))
     )
 
     matches_by_job: dict[uuid.UUID, list[MatchedProfileInfo]] = {}
@@ -262,15 +247,9 @@ def get_user_job_detail(db: Session, user_id: uuid.UUID, job_id: uuid.UUID) -> J
     )
 
     matches = db.execute(
-        select(JobMatch, Profile.name.label("profile_name"))
-        .join(Profile, Profile.id == JobMatch.profile_id)
-        .where(
-            JobMatch.job_id == job_id,
-            Profile.user_id == user_id,
-            Profile.active.is_(True),
-            JobMatch.matched.is_(True),
-            JobMatch.status == "evaluated",
-        )
+        current_matches(user_id)
+        .with_only_columns(JobMatch, Profile.name.label("profile_name"))
+        .where(JobMatch.job_id == job_id)
     ).all()
 
     matched_profiles: list[MatchedProfileInfo] = []

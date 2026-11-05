@@ -79,7 +79,7 @@ class DisabledEmailProvider(EmailNotificationProvider):
             "Email notifications disabled; suppressing message",
             extra={"recipient": message.recipient, "subject": message.subject},
         )
-        return DeliveryResult(provider_id="disabled-sink", status="sent")
+        return DeliveryResult(provider_id="disabled-sink", status="cancelled")
 
 
 class ResendEmailProvider(EmailNotificationProvider):

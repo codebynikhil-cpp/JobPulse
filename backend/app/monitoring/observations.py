@@ -1,10 +1,11 @@
-from sqlalchemy import case, func, literal, select, update
+from sqlalchemy import case, func, literal, or_, select, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 
 from app.models.catalog import JobSource
 from app.models.job import Job
-from app.models.monitoring import JobMonitorState, SourceMonitorState
+from app.models.monitoring import JobMatch, JobMonitorState, ProfileCompany, SourceMonitorState
+from app.models.profile import Profile
 from app.monitoring.config import MonitoringConfig
 from app.schemas.job import JobCreate
 
@@ -72,6 +73,31 @@ def record_observation(
                 else_="changed",
             ),
         )
+    )
+    # New subscriptions and edited/reactivated profiles need fresh evaluation even
+    # when the provider returns identical job content. Only unchanged jobs enter
+    # this path, preserving the new/changed ingestion event classification above.
+    unchanged = [identity for identity, kind in classifications.items() if kind == "unchanged"]
+    stale_jobs = (
+        select(Job.id)
+        .join(ProfileCompany, ProfileCompany.company_id == Job.company_id)
+        .join(Profile, Profile.id == ProfileCompany.profile_id)
+        .outerjoin(
+            JobMatch,
+            (JobMatch.job_id == Job.id) & (JobMatch.profile_id == Profile.id),
+        )
+        .where(
+            Job.source_id == source.id,
+            Job.status == "open",
+            Job.external_job_id.in_(unchanged),
+            Profile.active.is_(True),
+            or_(JobMatch.profile_id.is_(None), JobMatch.updated_at < Profile.updated_at),
+        )
+    )
+    db.execute(
+        update(JobMonitorState)
+        .where(JobMonitorState.job_id.in_(stale_jobs))
+        .values(pending=True, event_kind="changed")
     )
     closed = 0
     if anomaly:

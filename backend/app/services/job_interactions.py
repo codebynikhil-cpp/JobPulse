@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 
 from app.models.job_interaction import UserJobInteraction
 from app.models.monitoring import JobMatch
-from app.models.profile import Profile
+from app.services.current_matches import current_matches
 
 
 def get_user_job_interaction(
@@ -94,15 +94,9 @@ def set_user_job_interaction(
 
 def require_matched_job(db: Session, user_id: uuid.UUID, job_id: uuid.UUID) -> None:
     match = db.scalar(
-        select(JobMatch.job_id)
-        .join(Profile, Profile.id == JobMatch.profile_id)
-        .where(
-            JobMatch.job_id == job_id,
-            Profile.user_id == user_id,
-            Profile.active.is_(True),
-            JobMatch.matched.is_(True),
-            JobMatch.status == "evaluated",
-        )
+        current_matches(user_id)
+        .with_only_columns(JobMatch.job_id)
+        .where(JobMatch.job_id == job_id)
         .limit(1)
     )
     if match is None:

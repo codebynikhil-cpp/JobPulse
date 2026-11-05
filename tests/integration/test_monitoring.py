@@ -167,7 +167,7 @@ def test_subscription_owner_check_and_idempotency(factory):
         assert db.scalar(select(func.count()).select_from(ProfileCompany)) == 1
 
 
-@pytest.mark.parametrize("kind", ["lever", "ashby", "workday", "api", "custom"])
+@pytest.mark.parametrize("kind", ["workday", "api", "custom"])
 def test_unsupported_classification_not_runnable(factory, kind):
     sid, _ = source(factory, kind=kind)
     assert sid not in due_sources(factory, MonitoringConfig())

@@ -113,7 +113,15 @@ async def worker(
 ):
     stop = stop if stop is not None else asyncio.Event()
     while not stop.is_set():
-        await run_due(factory, config=config)
+        try:
+            await run_due(factory, config=config)
+        except Exception as exc:
+            logger.error(
+                "Unexpected monitoring cycle failure: %s",
+                exc,
+                extra={"error_type": type(exc).__name__},
+                exc_info=True,
+            )
         try:
             await asyncio.wait_for(stop.wait(), timeout=config.tick_seconds)
         except TimeoutError:

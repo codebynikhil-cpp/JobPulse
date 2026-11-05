@@ -1,0 +1,46 @@
+{
+  "apiVersion": "1",
+  "jobs": [
+    {
+      "id": "a1b2c3d4-e5f6-4a5b-8c9d-0e1f2a3b4c5d",
+      "title": "Lead Backend Engineer",
+      "location": "San Francisco, CA",
+      "secondaryLocations": [
+        {
+          "location": "Seattle, WA",
+          "address": {
+            "addressLocality": "Seattle",
+            "addressRegion": "WA",
+            "addressCountry": "US"
+          }
+        }
+      ],
+      "department": "Infrastructure",
+      "team": "Core Services",
+      "isListed": true,
+      "isRemote": true,
+      "workplaceType": "Remote",
+      "employmentType": "FullTime",
+      "descriptionHtml": "<p>We are looking for a <strong>Lead Backend Engineer</strong> to scale our data pipelines.</p><h3>Requirements</h3><ul><li>Strong Python or Go background</li><li>Distributed systems design</li></ul>",
+      "publishedAt": "2026-09-30T12:00:00.000Z",
+      "jobUrl": "https://jobs.ashbyhq.com/globex/a1b2c3d4-e5f6-4a5b-8c9d-0e1f2a3b4c5d",
+      "applyUrl": "https://jobs.ashbyhq.com/globex/a1b2c3d4-e5f6-4a5b-8c9d-0e1f2a3b4c5d/apply"
+    },
+    {
+      "id": "b2c3d4e5-f6a7-4b6c-9d0e-1f2a3b4c5d6e",
+      "title": "Product Designer",
+      "location": "Remote - US",
+      "secondaryLocations": [],
+      "department": "Design",
+      "team": "Product",
+      "isListed": true,
+      "isRemote": true,
+      "workplaceType": "Remote",
+      "employmentType": "FullTime",
+      "descriptionHtml": "<p>Design intuitive user experiences for our enterprise platform.</p>",
+      "publishedAt": "2026-10-01T15:30:00.000Z",
+      "jobUrl": "https://jobs.ashbyhq.com/globex/b2c3d4e5-f6a7-4b6c-9d0e-1f2a3b4c5d6e",
+      "applyUrl": "https://jobs.ashbyhq.com/globex/b2c3d4e5-f6a7-4b6c-9d0e-1f2a3b4c5d6e/apply"
+    }
+  ]
+}
