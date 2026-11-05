@@ -3,7 +3,7 @@ services:
   # Backend API Service (FastAPI)
   # ----------------------------------------------------------------------------
   - type: web
-    name: roledar-backend
+    name: roleradar-backend
     runtime: docker
     dockerfilePath: docker/backend.Dockerfile
     dockerContext: .
@@ -12,7 +12,7 @@ services:
     envVars:
       - key: DATABASE_URL
         fromDatabase:
-          name: roledar-postgres
+          name: roleradar-postgres
           property: connectionString
       - key: APP_ORIGIN
         sync: false
@@ -32,7 +32,7 @@ services:
   # Background Worker Service (Monitoring & Notification Outbox)
   # ----------------------------------------------------------------------------
   - type: worker
-    name: roledar-worker
+    name: roleradar-worker
     runtime: docker
     dockerfilePath: docker/backend.Dockerfile
     dockerContext: .
@@ -41,7 +41,7 @@ services:
     envVars:
       - key: DATABASE_URL
         fromDatabase:
-          name: roledar-postgres
+          name: roleradar-postgres
           property: connectionString
       - key: EMAIL_PROVIDER
         # Set to "resend" and configure RESEND_API_KEY + EMAIL_FROM once you have Resend credentials.
@@ -51,32 +51,12 @@ services:
       - key: EMAIL_FROM
         sync: false
 
-  # ----------------------------------------------------------------------------
-  # Frontend Web Service (Next.js 15)
-  # ----------------------------------------------------------------------------
-  - type: web
-    name: roledar-frontend
-    runtime: docker
-    dockerfilePath: docker/frontend.Dockerfile
-    dockerContext: .
-    plan: starter
-    healthCheckPath: /
-    envVars:
-      - key: BACKEND_URL
-        fromService:
-          type: web
-          name: roledar-backend
-          property: url
-      - key: TRUST_FORWARDED_FOR
-        value: "true"
-
 databases:
   # ----------------------------------------------------------------------------
   # Managed PostgreSQL 17 Database
   # ----------------------------------------------------------------------------
-  - name: roledar-postgres
+  - name: roleradar-postgres
     plan: starter
-    databaseName: roledar
-    user: roledar
+    databaseName: roleradar
+    user: roleradar
     postgresMajorVersion: 17
-

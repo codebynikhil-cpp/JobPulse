@@ -9,4 +9,4 @@ COPY tests/ /tests/
 RUN useradd --uid 10001 --create-home app && chown -R app:app /app /tests
 USER app
 ENV PATH="/app/.venv/bin:$PATH"
-CMD ["sh", "-c", "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000"]
+CMD ["sh", "-c", "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
